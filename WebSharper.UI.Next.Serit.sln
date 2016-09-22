@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{D2E917AF-BC69-4359-A6C2-FFE1A8FB1B79}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.UI.Next.Serit", "WebSharper.UI.Next.Serit\WebSharper.UI.Next.Serit.fsproj", "{6F2F5F3D-DE27-4401-B567-FF79442482B8}"
 EndProject
 Global

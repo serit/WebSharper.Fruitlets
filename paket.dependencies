@@ -1,0 +1,12 @@
+source C:\Users\klaske\Downloads
+source \\itpmedia\Media\NuGet
+source https://api.nuget.org/v3/index.json
+source http://premium.websharper.com/nuget
+framework >= net40
+
+
+group Main
+source https://www.nuget.org/api/v2
+
+nuget WebSharper >= 3.6.10.230
+nuget WebSharper.UI.Next
