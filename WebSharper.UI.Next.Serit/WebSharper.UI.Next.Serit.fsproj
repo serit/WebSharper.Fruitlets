@@ -146,6 +146,11 @@
           <Private>True</Private>
           <Paket>True</Paket>
         </Reference>
+        <Reference Include="WebSharper.JQuery">
+          <HintPath>..\packages\WebSharper\lib\net40\WebSharper.JQuery.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
         <Reference Include="WebSharper.JavaScript">
           <HintPath>..\packages\WebSharper\lib\net40\WebSharper.JavaScript.dll</HintPath>
           <Private>True</Private>

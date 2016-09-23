@@ -11,4 +11,4 @@ nuget IntelliFactory.Xml
 nuget WebSharper >= 3.6.10.230
 nuget WebSharper.UI.Next
 nuget Mono.Cecil
-nuget Fuchu
+nuget FSharp.Data
