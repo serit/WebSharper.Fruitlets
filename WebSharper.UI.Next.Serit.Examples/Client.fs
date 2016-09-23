@@ -23,7 +23,8 @@ module Client =
     let tbl =
         {
             Id = "table"
-            RowData = ListModel.Create id dataList
+            RowData = ListModel.Create (fun (i,c) -> i ) dataList
+            RowIdFunc = (fun (i,c) -> i)
             Class = [| Striped ; Bordered |]
             Columns =
                 [|
@@ -36,13 +37,12 @@ module Client =
 
                 |]
             Direction = Asc 1
-            Paging = None
         }
 
     let Main =
         let newName = Var.Create ""
 
         IndexTemplate.Main.Doc(
-            body = [tbl.ShowTable()]
+            body = [tbl.ShowTableWithPages 5]
         )
         |> Doc.RunById "main"

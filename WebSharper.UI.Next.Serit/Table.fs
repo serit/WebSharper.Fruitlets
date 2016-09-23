@@ -45,11 +45,6 @@ module Table =
     type SortShow =
         (SortableType -> string)
 
-    type TablePages =
-        {
-            ChunkSize: int
-        }
-
     type TableClass =
         | Striped
         | Bordered
@@ -106,12 +101,12 @@ module Table =
         static member SimpleSortColumn (name, fieldValueFunction : ('T -> float)) =
             Sortable (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]), (fun t -> F <| fieldValueFunction t ))
 
-    and Table<'U,'T> when 'U : equality =
+    and Table<'U, 'T> when 'U : equality  =
         {
             Id: string
             Class: TableClass []
-            Paging: TablePages option
-            RowData: ListModel<'U, 'T>
+            RowIdFunc: ('T -> 'U)
+            RowData: ListModel<'U,'T>
             Columns: Column<'T> []
             mutable Direction: SortDirection
         }
@@ -122,9 +117,10 @@ module Table =
                 column.showHeader index this
             )
             |> fun headerRow -> thead[tr headerRow] :> Doc
-        member this.ShowTable () =
+        member this.ShowTableFilter (filter: 'T -> bool ) =
             let rows view =
                 view
+                |> Seq.filter filter
                 |> Seq.map ( fun t ->
                     let row =
                         this.Columns
@@ -144,8 +140,25 @@ module Table =
                     |> Array.append [|"table"|]
                     |> String.concat " "
 
-            Doc.BindView ( fun view ->
-                tableAttr [attr.``class`` classes ]
-                    (this.ShowHeader() :: [tbody <| rows view])
+            tableAttr [attr.``class`` classes ]
+                (this.ShowHeader() :: [tbody <| rows this.RowData.Value])
+        member this.ShowTable () =
+            this.ShowTableFilter (fun _ -> true)
+
+        member this.ShowTableWithPages pageSize =
+            let currentPage = Var.Create 0
+            Doc.BindView ( fun rowdata ->
+                let pages =
+                    {0 ..  (Seq.length rowdata / pageSize)}
+                    |> Seq.map (fun p ->
+                        let dataList = rowdata |> Seq.indexed |> Seq.filter (fun (i,t) -> i / pageSize = p) |> Seq.map (fun (_,t) -> this.RowIdFunc t)
+                        p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.RowIdFunc t) dataList) :> Doc
+
+                    )
+                Pagination.show pages
             ) this.RowData.View
+
+
+
+
 
