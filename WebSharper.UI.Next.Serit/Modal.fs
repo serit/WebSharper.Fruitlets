@@ -68,7 +68,7 @@ module Modal =
             }
 
 
-    let Button Id attrList title =
+    let ButtonSimple Id attrList title =
         buttonAttr (
             [
                 attr.``type`` "button"
@@ -78,6 +78,15 @@ module Modal =
             ] @ attrList )[
                 text title
             ]
+
+    let Button Id attrList docList =
+        buttonAttr (
+            [
+                attr.``type`` "button"
+                attr.``class`` "btn btn-primary"
+                attr.``data-`` "toggle" "modal"
+                attr.``data-`` "target" <| "#" + Id
+            ] @ attrList ) docList
 
     let Header title =
         divClass "modal-header" [

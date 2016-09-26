@@ -55,8 +55,8 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Pagination.fs" />
-    <Compile Include="Table.fs" />
     <Compile Include="Modal.fs" />
+    <Compile Include="Table.fs" />
     <Compile Include="Main.fs" />
     <Content Include="paket.references" />
   </ItemGroup>
