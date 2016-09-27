@@ -57,94 +57,186 @@ module Table =
             | Bordered -> "table-bordered"
             | Custom cl -> cl
 
-
     type InputType<'T> =
         | StringInput of (('T -> string) * ('T -> string -> 'T))
-        member this.show (tbl : Table<_,'T>) =
+        | IntInput of (('T -> int) * ('T -> int -> 'T))
+        | FloatInput of (('T -> float) * ('T -> float -> 'T))
+        member this.changeAttrs (tbl : Table<_,'T>) updateFunc (t : 'T) =
+            let change t =
+                match tbl.RowData.UpdateFunc with
+                | Some upd -> upd ( updateFunc t)
+                | None -> ()
+            [
+                on.change (fun _ _ -> change t)
+                //on.keyUp (fun _ _ -> change t)
+                //on.paste (fun _ _ -> change t)
+            ]
+        member this.formWrapper label content =
+            divAttr[ attr.``class`` "form-group"][
+                labelAttr[attr.``for`` label][text label]
+                content
+            ]
+        member this.show (tbl : Table<_,'T>) label =
             match this with
             | StringInput (f, f') ->
-                (fun t ->
-                    let s = Var.Create (f t)
-                    Doc.Input [
-                        on.change (fun el ev ->
-                            tbl.RowData.UpdateBy (fun t' -> Some <| f' t' s.Value) (tbl.RowIdFunc t)
-                        )] s
-                    )
-    and Column<'T> =
-        | Editable of string * ('T -> list<Attr>) * ('T -> list<Doc>) * option<('T -> SortableType)> * ('T -> InputType<'T>)
-        | Sortable of string * ('T -> list<Attr>) * ('T -> list<Doc>) * ('T -> SortableType)
-        | Plain of string * ('T -> list<Attr>) * ('T -> list<Doc>)
-        member this.showHeader index table =
-            match this with
-            | Sortable (name, _, _, sortFunc) | Editable (name, _, _, Some sortFunc, _) ->
+                (fun (t' : Var<'T option>) ->
 
+                        let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> "") (fun t s -> Some <| f' t.Value s)
+                        Doc.Input(
+                                [
+                                    attr.id label
+                                    attr.``class`` "form-control"
+
+                                ]) s
+                        |> this.formWrapper label
+                )
+            | IntInput (f, f')->
+                (fun t' ->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0) (fun t s -> Some <| f' t.Value s)
+                    Doc.IntInputUnchecked(
+                            [
+                                attr.id label
+                                attr.``class`` "form-control"
+
+                            ]) s
+                    |> this.formWrapper label
+                )
+            | FloatInput (f, f')->
+                (fun t' ->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0.) (fun t s -> Some <| f' t.Value s)
+                    Doc.FloatInputUnchecked( //onchange @
+                            [
+                                attr.id label
+                                attr.``class`` "form-control"
+
+                            ]) s
+                    |> this.formWrapper label
+                    )
+
+    and Column<'T> =
+        {
+            Name: string
+            AttrList: ('T -> list<Attr>) option
+            DocList: ('T -> list<Doc>)
+            SortFunction: ('T -> SortableType) option
+            EditField: ('T -> InputType<'T>) option
+        }
+        member this.showHeader index table =
+            match this.SortFunction with
+            | Some sortFunc ->
                 tdAttr([
                         on.click ( fun _ _ ->
                             table.Direction <- table.Direction.Flip index
 
-                            (sortFunc, table.RowData.Value)
+                            (sortFunc, table.RowData.Model.Value)
                             ||> table.Direction.SortFunc index
-                            |> table.RowData.Set
+                            |> table.RowData.Model.Set
                         )
                 ] )[
-                    text name
+                    text this.Name
                     iAttr[
                         attr.style "color: #aaa;"
                         attr.``class`` <| table.Direction.FAClass index
                     ][] :> Doc
                 ] :> Doc
-            | Plain (name, _,_ ) | Editable (name, _, _, None, _)->
+            | None ->
                 td [
-                    text name
+                    text this.Name
                 ] :> Doc
 
         member this.showRow item =
-            match this with
-            | Editable (_, attrList, docList, _, _)
-            | Sortable (_, attrList, docList, _)
-            | Plain (_, attrList, docList) ->
-                tdAttr ( attrList item ) (docList item)
+            match this.AttrList with
+            | Some attrList ->
+                tdAttr ( attrList item ) (this.DocList item)
+            | None ->
+                td (this.DocList item)
+        static member empty =
+            {Name = ""; AttrList = None; DocList = (fun t -> List.empty); SortFunction = None; EditField = None}
         static member SimpleColumn (name, fieldValueFunction : ('T -> obj)) =
-            Plain (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
         static member SimpleColumn (name, fieldValueFunction : ('T -> int)) =
-            Plain (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
         static member SimpleColumn (name, fieldValueFunction : ('T -> string)) =
-            Plain (name, (fun t -> []), (fun t -> [text <| fieldValueFunction t ]))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text <| fieldValueFunction t ])}
         static member SimpleColumn (name, fieldValueFunction : ('T -> float)) =
-            Plain (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
         static member SimpleColumn (name, fieldValueFunction : ('T -> decimal)) =
-            Plain (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
         static member SimpleSortColumn (name, fieldValueFunction : ('T -> int)) =
-            Sortable (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]), (fun t -> I <| fieldValueFunction t ))
+            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> I <| fieldValueFunction t )}
         static member SimpleSortColumn (name, fieldValueFunction : ('T -> string)) =
-            Sortable (name, (fun t -> []), (fun t -> [text <| fieldValueFunction t ]), (fun t -> S <| fieldValueFunction t ))
+            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> S <| fieldValueFunction t )}
         static member SimpleSortColumn (name, fieldValueFunction : ('T -> float)) =
-            Sortable (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]), (fun t -> F <| fieldValueFunction t ))
+            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> F <| fieldValueFunction t )}
         static member SimpleSortColumn (name, fieldValueFunction : ('T -> decimal)) =
-            Sortable (name, (fun t -> []), (fun t -> [text << string <| fieldValueFunction t ]), (fun t -> F << float <| fieldValueFunction t ))
+            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> F << float <| fieldValueFunction t )}
 
     and Table<'U, 'T> when 'U : equality  =
         {
             Id: string
             Class: TableClass []
-            RowIdFunc: ('T -> 'U)
-            RowData: ListModel<'U,'T>
+            //RowIdFunc: ('T -> 'U)
+            RowData: DataSource.DataSource<'U,'T> //ListModel<'U,'T>
             Columns: Column<'T> []
             mutable Direction: SortDirection
         }
         member this.isEditable =
             this.Columns
-            |> Array.exists (fun c ->
-                match c with
-                | Editable _ -> true
-                | _ -> false)
-        member this.EditWindow (item : Var<'T option>) (idCode) =
+            |> Array.exists (fun c -> c.EditField.IsSome)
+        member this.EditWindow (item : Var<'T option>) windowId =
+            let editForm () =
+//                //View.
+//                match item.Value with
+//                | Some v ->
+                match Seq.tryHead this.RowData.Model.Value with
+                | Some v ->
+                    let editcolumns =
+                        this.Columns
+                        |> Array.filter(fun c -> c.EditField.IsSome)
+                    // should be a Var of t which updates the entire form and is updated by the form
+                    editcolumns
+                    |> Array.map (fun c ->
+                        (c.EditField.Value v).show this c.Name item :> Doc
+                    )
+                    |> Array.toList
+                    |> form
+
+                | None -> p [text "No item chosen"]
+            let footer t =
+                match t with
+                | Some v ->
+                    div[
+                        buttonAttr[attr.``class`` "btn btn-secondary"; attr.``data-`` "dismiss" "modal"][text "Close"] :> Doc
+                        (match this.RowData.UpdateFunc with
+                        | Some f ->
+                            buttonAttr[
+                                attr.``class`` "btn btn-primary"
+                                attr.``data-`` "dismiss" "modal"
+                                on.click (fun el ev ->
+                                    Console.Log <| sprintf "Save: %A" v
+                                    this.RowData.Model.UpdateBy (fun _ -> Some v ) <| this.RowData.IdFunc v
+                                    f v)][text "Save"] :> Doc
+                        | None -> Doc.Empty)
+                        (match this.RowData.DeleteFunc with
+                        | Some f ->
+                            buttonAttr[
+                                attr.``class`` "btn btn-danger"
+                                attr.``data-`` "dismiss" "modal"
+                                on.click (fun el ev ->
+                                    Console.Log <| sprintf "Remove: %A" v
+                                    this.RowData.Model.Remove v
+                                    f v)][text "Delete"] :> Doc
+                        | None -> Doc.Empty)
+                    ] :> Doc
+                | None -> Doc.Empty
+
             Modal.Window.Create
-                (sprintf "edit-%i" idCode)
-                (h2 [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "%A" (this.RowIdFunc t') | None -> "")) item.View ] )
-                (p [textView <| View.Map (fun t -> sprintf "%A" t) item.View])
-                Doc.Empty
+                windowId
+                (h2 [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "Item %A" (this.RowData.IdFunc t') | None -> "")) item.View ] )
+                (editForm ())//(p [textView <| View.Map (fun t -> sprintf "%A" t) item.View])
+                (Doc.BindView (fun t -> footer t) item.View)
                 Modal.WindowSize.Normal
+
         member this.ShowHeader () =
             let extracol = if this.isEditable then [|td[] :> Doc|] else [||]
             this.Columns
@@ -154,13 +246,13 @@ module Table =
             )
             |> Array.append extracol
             |> fun headerRow -> thead[tr headerRow] :> Doc
-        member this.ShowTableFilter (filter: 'T -> bool ) =
+        member private this.ShowTableFilter (filter: 'T -> bool ) =
             let currentItem = Var.Create None
-            let idCode = int <| (Math.Random() * 100000.) + 1.
+            let idCode = sprintf "%s-edit-%i" this.Id ( int <| (Math.Random() * 100000.) + 1.)
             let editColumn t =
                 if this.isEditable
                 then [ td[
-                        Modal.Button (sprintf "edit-%i" idCode) [on.click( fun el ev -> currentItem.Value <- Some t)] [
+                        Modal.Button idCode [on.click( fun el ev -> currentItem.Value <- Some t)] [
                                 iAttr[ attr.``class`` "fa fa-edit"][]]] :> Doc]
                 else List.empty
                 |> List.toArray
@@ -187,12 +279,16 @@ module Table =
                     |> Array.append [|"table"|]
                     |> String.concat " "
             div[
-                (this.EditWindow currentItem idCode).Show()
+                (if this.isEditable
+                then (this.EditWindow currentItem idCode).Show()
+                else Doc.Empty)
                 tableAttr [attr.``class`` classes ]
-                    (this.ShowHeader() :: [tbody <| rows this.RowData.Value])
+                    (this.ShowHeader() :: [tbody <| rows this.RowData.Model.Value])
             ]
         member this.ShowTable () =
-            this.ShowTableFilter (fun _ -> true)
+            Doc.BindView ( fun rowdata ->
+                this.ShowTableFilter (fun _ -> true)
+            ) this.RowData.Model.View
 
         member this.ShowTableWithPages pageSize =
             let currentPage = Var.Create 0
@@ -200,30 +296,35 @@ module Table =
                 let pages =
                     {0 ..  ((Seq.length rowdata - 1)/ pageSize)}
                     |> Seq.map (fun p ->
-                        let dataList = rowdata |> Seq.indexed |> Seq.filter (fun (i,t) -> i / pageSize = p) |> Seq.map (fun (_,t) -> this.RowIdFunc t)
-                        p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.RowIdFunc t) dataList) :> Doc
+                        let dataList = rowdata |> Seq.indexed |> Seq.filter (fun (i,t) -> i / pageSize = p) |> Seq.map (fun (_,t) -> this.RowData.IdFunc t)
+                        p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.RowData.IdFunc t) dataList) :> Doc
 
                     )
                 Pagination.show pages
-            ) this.RowData.View
+            ) this.RowData.Model.View
         static member empty =
             {
                 Id = ""
                 Class = Array.empty
                 Direction = Asc -1
-                RowData = ListModel.FromSeq []
+                RowData = DataSource.DataSource<'U,'T>.Create (id, ListModel.FromSeq [])
                 Columns = [||]
-                RowIdFunc = id
             }
         static member Create (Id, idFunc, columns, data) =
            {
                 Id = Id
-                Class = [| Striped |]
+                Class = [| Striped; Bordered |]
                 Columns = columns
                 Direction = Asc -1
-                RowIdFunc = idFunc
-                RowData = ListModel.Create idFunc data
-
+                RowData = DataSource.DataSource<'U,'T>.Create (id, ListModel.Create idFunc data)
+            }
+        static member Create (Id, idFunc, columns, data, createFunc, updateFunc, deleteFunc) =
+           {
+                Id = Id
+                Class = [| Striped; Bordered |]
+                Columns = columns
+                Direction = Asc -1
+                RowData = DataSource.DataSource<'U,'T>.Create (id, ListModel.Create idFunc data, createFunc, updateFunc, deleteFunc)
             }
 
 

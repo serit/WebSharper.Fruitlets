@@ -54,8 +54,10 @@
     </When>
   </Choose>
   <ItemGroup>
+    <Compile Include="Tab.fs" />
     <Compile Include="Pagination.fs" />
     <Compile Include="Modal.fs" />
+    <Compile Include="DataSource.fs" />
     <Compile Include="Table.fs" />
     <Compile Include="Main.fs" />
     <Content Include="paket.references" />

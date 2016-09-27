@@ -21,7 +21,7 @@ module Client =
     open WebSharper.UI.Next.Serit.Table
 
     let Body () =
-        let gameList = ListModel.Create (fun (r: Server.GameObject) -> r.Title) Array.empty
+        let gameList = ListModel.Create (fun (r: Server.GameObject) -> r.Rank) Array.empty
 
         async {
             let! gl = Server.GetGames()
@@ -30,39 +30,21 @@ module Client =
 
         let inputTitleLens (g: Server.GameObject) =
             let v = Var.Create g.Title
-            [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Title)] v :> Doc]
+            [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Rank)] v :> Doc]
 
 
         let columns =
-//            Server.GetGameNames()
-//            |> Array.map (fun name ->
-//                let mapfunc = (fun (g : Server.GameObject) ->
-//                    let result = GetField name g
-//                    As result
-//                    match result with
-//                    | :? int as i -> Column.SimpleColumn (name, (fun g -> i))
-//                    | :? float as f -> Column.SimpleColumn (name, (fun g -> f))
-//                    | :? string as s -> Column.SimpleColumn (name, (fun g -> s))
-//                    | _ -> Column.SimpleColumn (name, (fun g -> string result))
-//                    )
-//                mapfunc
-//            )
-//        Console.Log columns
             [|
-                Column.SimpleSortColumn ("Title" , (fun (r: Server.GameObject) -> r.Title))
-                Column.Plain ("Editable title", (fun g -> []), (fun g -> inputTitleLens g ))
-                Column.Editable ("Editable title special", (fun g -> []), (fun g -> inputTitleLens g ), None, (fun g -> StringInput ((fun g -> g.Title),(fun g t -> {g with Title = t}))))
+                {Column.SimpleSortColumn ("Title" , (fun (r: Server.GameObject) -> r.Title)) with EditField = Some(fun r -> StringInput ((fun r -> r.Title), (fun r t -> {r with Title = t})))}
                 Column.SimpleSortColumn ("Rating" , (fun (r: Server.GameObject) -> r.Rating))
                 Column.SimpleSortColumn ("Voters" , (fun (r: Server.GameObject) -> r.Voters))
                 Column.SimpleSortColumn ("Rank" , (fun (r: Server.GameObject) -> r.Rank))
-                //Column.Plain ("", (fun g -> []), (fun g -> [buttonAttr[on.click (fun el ev -> Console.Log g)] [text "Save"]] ))
             |]
 
-        let gameTable =
+        let gameTable : Table<int,Server.GameObject> =
             {
                 Id = "gameTable"
-                RowData = gameList
-                RowIdFunc = (fun r -> r.Title)
+                RowData = DataSource.DataSource<int,Server.GameObject>.Create((fun r -> r.Rank), gameList, (fun g -> g.Rank), (fun g -> gameList.UpdateBy (fun g' -> Some g') g.Rank))
                 Class = [| Striped ; Bordered |]
                 Columns = columns
                 Direction = Asc 3

@@ -44,12 +44,18 @@ module Modal =
                     ] @ dialogSizeAttrs )[
                         divClass "modal-content fs-modal-content"
                             [
-                                this.Header
+                                divClass "modal-header" [
+                                    buttonAttr[
+                                        attr.``class`` "close"
+                                        attr.``data-`` "dismiss" "modal"
+                                        ][text "\u00D7"]
+                                    this.Header
+                                ]
                                 divClass "modal-body" [this.Body]
-                                this.Footer
+                                divClass "modal-footer" [this.Footer]
                             ]
                     ]
-            ]
+            ] :> Doc
         static member Create Id header body footer size =
             {
                 Id = Id
