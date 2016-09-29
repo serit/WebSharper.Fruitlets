@@ -19,6 +19,10 @@ module Client =
     let GetField field obj = X<obj>
 
     open WebSharper.UI.Next.Serit.Table
+    let now = Server.now()
+//    let showTime (time: System.TimeSpan) =
+//        let t = new Date(0,0,0, time.Hours, time.Minutes)
+//        sprintf "%02i:%02i" (t.GetHours()) (t.GetMinutes())
 
     let Body () =
         let gameList = ListModel.Create (fun (r: Server.GameObject) -> r.Rank) Array.empty
@@ -32,13 +36,19 @@ module Client =
             let v = Var.Create g.Title
             [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Rank)] v :> Doc]
 
+        let testList = Var.Create <| Map([(1,"a");(102,"b")])
 
         let columns =
             [|
-                {Column.SimpleSortColumn ("Title" , (fun (r: Server.GameObject) -> r.Title)) with EditField = Some(fun r -> StringInput ((fun r -> r.Title), (fun r t -> {r with Title = t})))}
+                {Column.SimpleSortColumn ("Title" , (fun (r: Server.GameObject) -> r.Title)) with EditField = Some(Form.StringInput ((fun r -> r.Title), (fun r t -> {r with Title = t})))}
                 Column.SimpleSortColumn ("Rating" , (fun (r: Server.GameObject) -> r.Rating))
                 Column.SimpleSortColumn ("Voters" , (fun (r: Server.GameObject) -> r.Voters))
                 Column.SimpleSortColumn ("Rank" , (fun (r: Server.GameObject) -> r.Rank))
+                {Column.SimpleColumn (" > 2010" , (fun (r: Server.GameObject) -> r.Year > 2010)) with
+                    EditField = Some(Form.BoolInput ((fun r -> r.Year > 2010), (fun r t -> {r with Title = r.Title + "!!!"})))}
+                {Column.SimpleColumn (" Now" , (fun (r: Server.GameObject) -> sprintf "%02i:%02i" now.Hours now.Minutes)) with
+                    EditField = Some(Form.TimeInput ((fun r -> now.Ticks), (fun r t -> r)))}
+                Column.EditSelectColumn ("Rank 2" , (fun (r: Server.GameObject) -> r.Rank), (fun r t -> { r with Rank = t}), testList )
             |]
 
         let gameTable : Table<int,Server.GameObject> =

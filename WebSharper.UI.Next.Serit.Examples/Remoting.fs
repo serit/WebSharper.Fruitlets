@@ -50,13 +50,13 @@ module Server =
 
     [<JavaScript>]
     type GameObject =
-        { Title : string; Rating : float; Rank: int; Voters: int}
+        { Title : string; Rating : float; Rank: int; Voters: int; Year: int}
         static member Create () =
-            { Title = ""; Rating = 0.0; Rank = 0; Voters = 0}
+            { Title = ""; Rating = 0.0; Rank = 0; Voters = 0; Year = 0}
         static member Create (title:string) =
-            { Title = title; Rating = 0.0; Rank = 0; Voters = 0}
-        static member Create (title:string, rating:float, rank:int,voters:int) =
-            { Title = title; Rating = rating; Rank = rank; Voters = voters}
+            { GameObject.Create() with Title = title}
+        static member Create (title:string, rating:float, rank:int,voters:int, year) =
+            { Title = title; Rating = rating; Rank = rank; Voters = voters; Year = year}
 
 
 //    [<Rpc>]
@@ -68,12 +68,22 @@ module Server =
 //        }
 
     [<Rpc>]
+    let now() = System.DateTime.Now.TimeOfDay
+
+    [<Rpc>]
     let GetGames () =
         async {
             let Games = Game.Load(gamePath)
             return
                 Games.Rows
-                |> Seq.map (fun t -> GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``))
+                |> Seq.map (fun t ->
+
+                        let year =
+                            try
+                                 ( t.Title.Trim ')') |> fun s -> s.Split '(' |> Array.item 1 |> int
+                            with
+                                | _ -> 0
+                        GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``, year))
                 |> Seq.toArray
         }
 
