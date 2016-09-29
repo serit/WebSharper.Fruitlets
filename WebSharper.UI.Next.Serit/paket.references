@@ -2,3 +2,5 @@ Intellifactory.Core
 Mono.Cecil
 WebSharper
 WebSharper.UI.Next
+WebSharper.Html.Client
+WebSharper.JQueryUI

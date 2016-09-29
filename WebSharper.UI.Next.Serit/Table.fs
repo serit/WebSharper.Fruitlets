@@ -9,6 +9,7 @@ open WebSharper.UI.Next.Html
 // Bootstrap table
 [<JavaScript>]
 module Table =
+    open Form
 
     type SortDirection =
         | Asc of int
@@ -35,6 +36,7 @@ module Table =
         | S of string
         | F of float
         | D of System.DateTime
+        | B of bool
         static member DefaultShow =
             fun (st : SortableType) ->
                 match st with
@@ -42,6 +44,7 @@ module Table =
                 | S s -> s
                 | F f -> sprintf "%f" f
                 | D d -> d.ToShortDateString()
+                | B b -> if b then "1" else "0"
         //| T of obj //* ('T -> ColumnType<'T>)
 
     type SortShow =
@@ -57,69 +60,24 @@ module Table =
             | Bordered -> "table-bordered"
             | Custom cl -> cl
 
-    type InputType<'T> =
-        | StringInput of (('T -> string) * ('T -> string -> 'T))
-        | IntInput of (('T -> int) * ('T -> int -> 'T))
-        | FloatInput of (('T -> float) * ('T -> float -> 'T))
-        member this.changeAttrs (tbl : Table<_,'T>) updateFunc (t : 'T) =
-            let change t =
-                match tbl.RowData.UpdateFunc with
-                | Some upd -> upd ( updateFunc t)
-                | None -> ()
-            [
-                on.change (fun _ _ -> change t)
-                //on.keyUp (fun _ _ -> change t)
-                //on.paste (fun _ _ -> change t)
-            ]
-        member this.formWrapper label content =
-            divAttr[ attr.``class`` "form-group"][
-                labelAttr[attr.``for`` label][text label]
-                content
-            ]
-        member this.show (tbl : Table<_,'T>) label =
-            match this with
-            | StringInput (f, f') ->
-                (fun (t' : Var<'T option>) ->
 
-                        let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> "") (fun t s -> Some <| f' t.Value s)
-                        Doc.Input(
-                                [
-                                    attr.id label
-                                    attr.``class`` "form-control"
+    let private showTime (time: int64) =
+        let hour = 60L * 60L * 1000L * 10000L
+        let hourFunc t = int <| (t  % (24L * hour) ) / hour
 
-                                ]) s
-                        |> this.formWrapper label
-                )
-            | IntInput (f, f')->
-                (fun t' ->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0) (fun t s -> Some <| f' t.Value s)
-                    Doc.IntInputUnchecked(
-                            [
-                                attr.id label
-                                attr.``class`` "form-control"
+        let minute = 60L * 1000L * 10000L
+        let minFunc t = int <| (t % hour) / minute
 
-                            ]) s
-                    |> this.formWrapper label
-                )
-            | FloatInput (f, f')->
-                (fun t' ->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0.) (fun t s -> Some <| f' t.Value s)
-                    Doc.FloatInputUnchecked( //onchange @
-                            [
-                                attr.id label
-                                attr.``class`` "form-control"
+        let t = new Date(0,0,0, hourFunc time, minFunc time)
+        sprintf "%02i:%02i" (t.GetHours()) (t.GetMinutes())
 
-                            ]) s
-                    |> this.formWrapper label
-                    )
-
-    and Column<'T> =
+    type Column<'T> =
         {
             Name: string
             AttrList: ('T -> list<Attr>) option
             DocList: ('T -> list<Doc>)
             SortFunction: ('T -> SortableType) option
-            EditField: ('T -> InputType<'T>) option
+            EditField: InputType<'T> option
         }
         member this.showHeader index table =
             match this.SortFunction with
@@ -152,24 +110,53 @@ module Table =
                 td (this.DocList item)
         static member empty =
             {Name = ""; AttrList = None; DocList = (fun t -> List.empty); SortFunction = None; EditField = None}
-        static member SimpleColumn (name, fieldValueFunction : ('T -> obj)) =
-            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
-        static member SimpleColumn (name, fieldValueFunction : ('T -> int)) =
-            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
-        static member SimpleColumn (name, fieldValueFunction : ('T -> string)) =
-            { Column<'T>.empty with Name = name; DocList = (fun t -> [text <| fieldValueFunction t ])}
-        static member SimpleColumn (name, fieldValueFunction : ('T -> float)) =
-            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
-        static member SimpleColumn (name, fieldValueFunction : ('T -> decimal)) =
-            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| fieldValueFunction t ])}
-        static member SimpleSortColumn (name, fieldValueFunction : ('T -> int)) =
-            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> I <| fieldValueFunction t )}
-        static member SimpleSortColumn (name, fieldValueFunction : ('T -> string)) =
-            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> S <| fieldValueFunction t )}
-        static member SimpleSortColumn (name, fieldValueFunction : ('T -> float)) =
-            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> F <| fieldValueFunction t )}
-        static member SimpleSortColumn (name, fieldValueFunction : ('T -> decimal)) =
-            { Column<'T>.SimpleColumn(name, fieldValueFunction) with SortFunction = Some (fun t -> F << float <| fieldValueFunction t )}
+        static member SimpleColumn (name, get : ('T -> obj)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleColumn (name, get : ('T -> int)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleColumn (name, get : ('T -> string)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text <| get t ])}
+        static member SimpleColumn (name, get : ('T -> Date)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleColumn (name, get : ('T -> float)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleColumn (name, get : ('T -> decimal)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleColumn (name, get : ('T -> bool)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
+        static member SimpleSortColumn (name, get : ('T -> int)) =
+            { Column<'T>.SimpleColumn(name, get) with SortFunction = Some (fun t -> I <| get t )}
+        static member SimpleSortColumn (name, get : ('T -> string)) =
+            { Column<'T>.SimpleColumn(name, get) with SortFunction = Some (fun t -> S <| get t )}
+        static member SimpleSortColumn (name, get : ('T -> float)) =
+            { Column<'T>.SimpleColumn(name, get) with SortFunction = Some (fun t -> F <| get t )}
+        static member SimpleSortColumn (name, get : ('T -> decimal)) =
+            { Column<'T>.SimpleColumn(name, get) with SortFunction = Some (fun t -> F << float <| get t )}
+        static member EditColumn (name, get : ('T -> string), set : ('T -> string -> 'T)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text <| get t ]); SortFunction = Some (fun t -> S <| get t ); EditField = Some (Form.StringInput (get, set))}
+        static member EditColumn (name, get : ('T -> int), set : ('T -> int -> 'T)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ]); SortFunction = Some (fun t -> I <| get t ); EditField = Some (Form.IntInput (get, set))}
+        static member EditColumn (name, get : ('T -> float), set : ('T -> float -> 'T)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << string <| get t ]); SortFunction = Some (fun t -> F <| get t ); EditField = Some (Form.FloatInput (get, set))}
+        static member EditColumn (name, get : ('T -> bool), set : ('T -> bool -> 'T)) =
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text <| if get t then "\u00D7" else "" ]); SortFunction = Some (fun t -> B <| get t ); EditField = Some (Form.BoolInput (get, set))}
+        static member EditTimeSpanColumn (name, get : ('T -> int64), set : ('T -> int64 -> 'T)) =
+            /// Be aware that this column has to use get, set functions that operate on TimeSpan.Ticks so e.g. (get: (fun t -> t.Time.Ticks) (set: (fun t s -> {t with Time = System.TimeSpan.FromTicks s})))
+            { Column<'T>.empty with Name = name; DocList = (fun t -> [text << showTime <| get t ]); SortFunction = Some (fun t -> I << int <| get t ); EditField = Some (Form.TimeInput (get, set))}
+        static member EditSelectColumn (name, get : ('T -> int), set : ('T -> int -> 'T), optionMap : Var<Map<int,string>>) =
+            /// This column can be used to represent and change foreign keys
+            let findInMap (map : Var<Map<int,string>>) value =
+                if map.Value.IsEmpty
+                then ""
+                else
+                    match map.Value.TryFind value with
+                    | Some v -> v
+                    | None -> ""
+            { Column<'T>.empty with
+                Name = name
+                DocList = (fun t -> [text <| findInMap optionMap (get t)])
+                SortFunction = Some (fun t -> S <| findInMap optionMap (get t) )
+                EditField = Some (Form.SelectInput (get, set, optionMap))}
 
     and Table<'U, 'T> when 'U : equality  =
         {
@@ -188,20 +175,16 @@ module Table =
 //                //View.
 //                match item.Value with
 //                | Some v ->
-                match Seq.tryHead this.RowData.Model.Value with
-                | Some v ->
-                    let editcolumns =
-                        this.Columns
-                        |> Array.filter(fun c -> c.EditField.IsSome)
-                    // should be a Var of t which updates the entire form and is updated by the form
-                    editcolumns
-                    |> Array.map (fun c ->
-                        (c.EditField.Value v).show this c.Name item :> Doc
-                    )
-                    |> Array.toList
-                    |> form
-
-                | None -> p [text "No item chosen"]
+                let editcolumns =
+                    this.Columns
+                    |> Array.filter(fun c -> c.EditField.IsSome)
+                // should be a Var of t which updates the entire form and is updated by the form
+                editcolumns
+                |> Array.map (fun c ->
+                    (c.EditField.Value).show c.Name item
+                )
+                |> Array.toList
+                |> form
             let footer t =
                 match t with
                 | Some v ->
@@ -300,7 +283,7 @@ module Table =
                         p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.RowData.IdFunc t) dataList) :> Doc
 
                     )
-                Pagination.show pages
+                Pagination.show pages Pagination.PagerPosition.Up
             ) this.RowData.Model.View
         static member empty =
             {

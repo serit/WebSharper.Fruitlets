@@ -18,8 +18,8 @@ module Tab =
         member this.ShowLink () =
             let attrs =
                 if this.Active
-                then this.AttrList
-                else (attr.``class`` "active") :: this.AttrList
+                then (attr.``class`` "active") :: this.AttrList
+                else this.AttrList
 
             liAttr attrs [
                 aAttr[
