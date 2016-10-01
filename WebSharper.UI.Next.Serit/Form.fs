@@ -5,14 +5,46 @@ open WebSharper.JavaScript
 open WebSharper.UI.Next
 open WebSharper.UI.Next.Client
 open WebSharper.UI.Next.Html
-open WebSharper.JQueryUI
+//open WebSharper.JQueryUI
 
 // Bootstrap formfields
 [<JavaScript>]
 module Form =
+    [<Core.Attributes.Inline "$this.options[$this.selectedIndex].value">]
+    let private getSelected this = X<string>
 
-//    [<Inline "">]
-//    let TimePicker this = X<unit>
+
+    let private Select' attrs (l: Var<Map<int,string>>) (current: int) (targetLens:IRef<int option>) =
+        let tryItem (map : Map<int,string>) value =
+            match map.TryFind value with
+            | Some v -> v
+            | None -> ""
+        Doc.BindView( fun (map : Map<int,string>) ->
+            let values = [for (item) in map do yield item.Key]
+
+            selectAttr
+                ([
+                    on.change (fun el _ ->
+                        targetLens.Set << Some << int <| getSelected el)
+                    ] @ attrs )
+                (
+
+                    [for item in map do
+                        yield
+                            Doc.Element
+                                "option"
+                                [
+                                    attr.value <| string item.Key
+                                    (if current = item.Key
+                                    then
+                                        attr.selected "selected"
+                                    else
+                                        Attr.Empty)
+                                ] [text item.Value] :> Doc
+
+                    ]) :> Doc
+        ) l.View
+
 
 
     /// InputType is a lens and should be used in a form that represents a Var<'T>
@@ -85,14 +117,19 @@ module Form =
                     let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> new Date()) (fun t s -> Some <| f' t.Value s)
                     div[text "datepicker..."]  :> Doc
                 | SelectInput (f, f', l) ->
-                    let tryItem (map : Map<int,string>) value =
-                        match map.TryFind value with
-                        | Some v -> v
-                        | None -> ""
-                    Doc.BindView( fun (map : Map<int,string>) ->
-                        let values = [for (item) in map do yield item.Key]
-                        let s = Var.Lens t' (fun t -> match t with | Some t' -> Some <| f t' | None -> None) (fun t s -> match s with |Some v -> Some <| f' t.Value v | None -> t)
-                        (Doc.SelectOptional attrs "-" (fun i -> tryItem map i) values s |> this.formWrapper label')
-                    ) l.View
+                    let s = Var.Lens t' (fun t -> match t with | Some t' -> Some <| f t' | None -> None) (fun t s -> match s with |Some v -> Some <| f' t.Value v | None -> t)
+                    Doc.BindView( fun t ->
+                        Select' attrs l (match t with | Some t' -> f t' | None -> 0) s|> this.formWrapper label'
+                    ) t'.View
+//                | SelectInput (f, f', l) ->
+//                    let tryItem (map : Map<int,string>) value =
+//                        match map.TryFind value with
+//                        | Some v -> v
+//                        | None -> ""
+//                    Doc.BindView( fun (map : Map<int,string>) ->
+//                        let values = [for (item) in map do yield item.Key]
+//                        let s = Var.Lens t' (fun t -> match t with | Some t' -> Some <| f t' | None -> None) (fun t s -> match s with |Some v -> Some <| f' t.Value v | None -> t)
+//                        (Doc.SelectOptional attrs "-" (fun i -> tryItem map i) values s |> this.formWrapper label')
+//                    ) l.View
             )
 
