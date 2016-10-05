@@ -1,4 +1,4 @@
-﻿namespace WebSharper.UI.Next.Serit
+﻿namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.UI.Next
@@ -59,8 +59,8 @@ module Pagination =
 
             ] :> Doc
 
-        let pagination () =
-            ulAttr[attr.``class`` "pagination"]
+        let pagination attrs =
+            ulAttr([attr.``class`` "pagination"] @ attrs)
                 ( [PreviousPage ()]
                     @ (
                         pageContent
@@ -88,6 +88,6 @@ module Pagination =
 
         div (
                 match position with
-                | Up -> [pagination ()] @ content
-                | Down -> content @ [pagination ()]
+                | Up -> [pagination []] @ content
+                | Down -> content @ [pagination [attr.style "margin-top: 0"]]
             )

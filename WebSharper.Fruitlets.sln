@@ -8,9 +8,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{D2E917
 		paket.dependencies = paket.dependencies
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.UI.Next.Serit", "WebSharper.UI.Next.Serit\WebSharper.UI.Next.Serit.fsproj", "{6F2F5F3D-DE27-4401-B567-FF79442482B8}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.Fruitlets", "WebSharper.Fruitlets\WebSharper.Fruitlets.fsproj", "{6F2F5F3D-DE27-4401-B567-FF79442482B8}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.UI.Next.Serit.Examples", "WebSharper.UI.Next.Serit.Examples\WebSharper.UI.Next.Serit.Examples.fsproj", "{FCB65AEE-0C3B-4DD6-997A-954253B219FB}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.Fruitlets.Examples", "WebSharper.Fruitlets.Examples\WebSharper.Fruitlets.Examples.fsproj", "{FCB65AEE-0C3B-4DD6-997A-954253B219FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

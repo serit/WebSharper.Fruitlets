@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>WebSharper.UI.Next.Serit</id>
-    <version>0.0.12</version>
+    <id>WebSharper.Fruitlets</id>
+    <version>0.1.0</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Updated the select field to allow non existing keys</releaseNotes>
+    <releaseNotes>Show field without edit in form, edit fields to the right, header to a column can be a Doc</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>
@@ -21,6 +21,6 @@
     </dependencies>
   </metadata>
   <files>
-      <file src="WebSharper.UI.Next.Serit\bin\Release\WebSharper.UI.Next.Serit.dll" target="lib\NET40" />
+      <file src="WebSharper.Fruitlets\bin\Release\WebSharper.Fruitlets.dll" target="lib\NET40" />
   </files>
 </package>

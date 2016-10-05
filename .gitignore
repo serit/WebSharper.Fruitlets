@@ -5,6 +5,7 @@
 nuget.exe
 paket.lock
 WebSharper*.js
+*/Scripts
 
 # User-specific files
 *.suo

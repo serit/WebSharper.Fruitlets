@@ -1,4 +1,4 @@
-﻿namespace WebSharper.UI.Next.Serit
+﻿namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.UI.Next
@@ -7,6 +7,7 @@ open WebSharper.UI.Next.Html
 
 [<JavaScript>]
 module Modal =
+
 
     let private divClass ``class`` content =
         divAttr [attr.``class`` ``class``] content

@@ -1,4 +1,4 @@
-namespace WebSharper.UI.Next.Serit.Examples
+namespace WebSharper.Fruitlets.Examples
 
 type Global() =
     inherit System.Web.HttpApplication()

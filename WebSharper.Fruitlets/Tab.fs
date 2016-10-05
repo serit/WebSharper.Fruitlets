@@ -1,4 +1,4 @@
-﻿namespace WebSharper.UI.Next.Serit
+﻿namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.UI.Next
