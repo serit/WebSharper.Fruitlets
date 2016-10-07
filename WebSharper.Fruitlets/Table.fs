@@ -11,6 +11,23 @@ open WebSharper.UI.Next.Html
 module Table =
     open Form
 
+    [<Inline "$obj[$field]">]
+    let private JSGetIntField obj field = X<int>
+    [<Inline "$obj[$field]">]
+    let private JSGetFloatField obj field = X<float>
+    [<Inline "$obj[$field]">]
+    let private JSGetStringField obj field = X<string>
+    [<Inline "$obj[$field]">]
+    let private JSGetBoolField obj field = X<bool>
+    [<Inline "$obj[$field]">]
+    let private JSGetObjField obj field = X<obj>
+    [<Inline "$obj[$field]">]
+    let private JSGetTimeSpanField obj field = X<System.TimeSpan>
+    [<Inline "$obj[$field]">]
+    let private JSGetDateTimeField obj field = X<System.DateTime>
+    [<Inline "$obj[$field] = $value">]
+    let private JSSetField obj field value = X<Unit>
+
     let private flip f a b = f b a
 
     type TableClass =
@@ -22,6 +39,17 @@ module Table =
             | Striped -> "table-striped"
             | Bordered -> "table-bordered"
             | Custom cl -> cl
+
+    type FieldClass =
+        | IntField
+        | FloatField
+        | StringField
+        | TextField
+        | BoolField
+        | TimeField
+        | DateField
+        | SelectField of Map<int,string>
+        | SelectFieldVar of Var<Map<int,string>>
 
     type Column<'T> =
         {
@@ -124,11 +152,30 @@ module Table =
                 DocList = (fun t -> [text <| findInMap optionMap (get t)])
                 SortFunction = Some (fun t -> Sort.S <| findInMap optionMap (get t) )
                 EditField = Some (Form.SelectInput (get, set, optionMap))}
-
+        /// Use the parse functions with caution. They are not typesafe and meant to be used in combination with Reflection.
+        static member Parse(name, _type) =
+            match _type with
+            | IntField -> Column.EditColumn(name, (fun t -> JSGetIntField t name),(fun t v -> JSSetField t name v; t))
+            | StringField -> Column.EditColumn(name, (fun t -> JSGetStringField t name),(fun t v -> JSSetField t name v; t))
+            | TextField ->
+                let column = Column.EditColumn(name, (fun t -> JSGetStringField t name),(fun t v -> JSSetField t name v; t))
+                match column.EditField.Value with
+                | StringInput obj -> {column with EditField = Some <| TextInput obj}
+                | _ -> column
+            | BoolField -> Column.EditColumn(name, (fun t -> JSGetBoolField t name),(fun t v -> JSSetField t name v; t))
+            | FloatField -> Column.EditColumn(name, (fun t -> JSGetFloatField t name),(fun t v -> JSSetField t name v; t))
+            | TimeField -> Column.EditTimeSpanColumn(name, (fun t -> (JSGetTimeSpanField t name).Ticks),(fun t v -> JSSetField t name (System.TimeSpan.FromTicks v); t))
+            | DateField -> Column.EditDateColumn(name, (fun t -> JSGetDateTimeField t name),(fun t v -> JSSetField t name v; t))
+            | SelectField m -> 
+                let varmap = Var.Create m
+                Column.EditSelectColumn(name, (fun t -> JSGetIntField t name),(fun t v -> JSSetField t name v; t), varmap)
+            | SelectFieldVar m -> Column.EditSelectColumn(name, (fun t -> JSGetIntField t name),(fun t v -> JSSetField t name v; t), m)
+        static member Parse(name, _type, header) =
+            { Column<'T>.Parse(name, _type) with Header = header }
 
     type Table<'U, 'T> when 'U : equality  =
         {
-            Id: string
+            Id': string
             Class: TableClass []
             DataSource: DataSource.DS<'U,'T>
             Columns: Column<'T> []
@@ -189,7 +236,7 @@ module Table =
             then
                 // a button and an edit field: new. on new, open window with empty form
                 let currentItem = Var.Create None
-                let newModalId = (sprintf "new-%s" this.Id)
+                let newModalId = (sprintf "new-%s" this.Id')
                 div[
                     (this.EditWindow currentItem newModalId).Show()
                     buttonAttr[
@@ -213,7 +260,7 @@ module Table =
             |> flip Array.append extracol
             |> fun headerRow -> thead[tr headerRow] :> Doc
         member private this.ShowTableFilter (filter: 'T -> bool ) (currentItem : Var<'T option>) =
-            let idCode = sprintf "%s-edit-%i" this.Id ( int <| (Math.Random() * 100000.) + 1.)
+            let idCode = sprintf "%s-edit-%i" this.Id' ( int <| (Math.Random() * 100000.) + 1.)
             let editColumn t =
                 if this.isEditable
                 then
@@ -240,7 +287,7 @@ module Table =
                     trAttr [
                         on.click
                             (fun el ev ->
-                            JQuery.JQuery("#" + this.Id + " tr").RemoveClass("active-row").RemoveAttr("style") |> ignore
+                            JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("active-row").RemoveAttr("style") |> ignore
                             el.SetAttribute ("class", "active-row")
                             el.SetAttribute ("style", "background: #d9edf7")
                             match this.DataSource.ItemSelectFunc with
@@ -266,7 +313,7 @@ module Table =
                 else Doc.Empty)
                 tableAttr [
                     attr.``class`` classes
-                    attr.id this.Id
+                    attr.id this.Id'
                     ]
                     (this.ShowHeader() :: [tbody <| rows this.DataSource.Model.Value])
             ]
@@ -297,21 +344,35 @@ module Table =
             ]
         static member empty =
             {
-                Id = ""
+                Id' = ""
                 Class = Array.empty
                 DataSource = DataSource.DS<'U,'T>.Create (id, (fun () -> async{return Array.empty}))
                 Columns = [||]
             }
-        static member Create (Id, (keyFunction: ('T -> 'U)), columns, data, (readFunc: unit -> Async<array<'T>>)) =
+        static member Create (Id, (keyFunction: ('T -> 'U)), columns, (readFunc: unit -> Async<array<'T>>)) =
            {
-                Id = Id
+                Id' = Id
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'U,'T>.Create (keyFunction, readFunc)
             }
-        static member Create (Id, (keyFunction: 'T -> 'U), columns, data, readFunc, createFunc, updateFunc, deleteFunc, getFunc) =
+        static member Create (Id, (keyFunction: 'T -> 'U), columns, (readFunc: unit -> Async<array<'T>>), createFunc, updateFunc, deleteFunc, getFunc) =
            {
-                Id = Id
+                Id' = Id
+                Class = [| Striped; Bordered |]
+                Columns = columns
+                DataSource = DataSource.DS<'U,'T>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc, getFunc)
+            }
+        static member Create (Id, (keyFunction: 'T -> 'U), columns, (itemSelectFunc), (readFunc: unit -> Async<array<'T>>), createFunc, updateFunc, deleteFunc, getFunc) =
+           {
+                Id' = Id
+                Class = [| Striped; Bordered |]
+                Columns = columns
+                DataSource = DataSource.DS<'U,'T>.Create (keyFunction, readFunc, itemSelectFunc, createFunc, updateFunc, deleteFunc, getFunc)
+            }
+        static member Create (Id, (keyFunction: 'T -> 'U), columns, (readFunc: unit -> array<'T>), createFunc, updateFunc, deleteFunc, getFunc) =
+           {
+                Id' = Id
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'U,'T>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc, getFunc)

@@ -15,28 +15,8 @@ open Server
 [<JavaScript>]
 module Client =
 
-    [<Inline "$obj[$field]">]
-    let private JSGetField field obj = X<_>
-    [<Inline "$obj[$field] = $value">]
-    let private JSSetField field obj value = X<Unit>
-
-    let GetField obj (field :string) (objtype: Sort.SortableType) =
-        match objtype with
-        | Sort.I _ -> Sort.I <| JSGetField obj field
-        | Sort.S _ -> Sort.S <| JSGetField obj field
-        | Sort.F _ -> Sort.F <| JSGetField obj field
-        | Sort.D _ -> Sort.D <| JSGetField obj field
-        | Sort.B _ -> Sort.B <| JSGetField obj field
-
-    let SetField obj (field :string) value =
-        JSSetField obj field value
-        field
-
     open WebSharper.Fruitlets.Table
     let now = Server.now()
-//    let showTime (time: System.TimeSpan) =
-//        let t = new Date(0,0,0, time.Hours, time.Minutes)
-//        sprintf "%02i:%02i" (t.GetHours()) (t.GetMinutes())
 
     let Body () =
         let gameList = ListModel.Create (fun (r: Server.GameObject) -> r.Rank) Array.empty
@@ -45,24 +25,25 @@ module Client =
             let v = Var.Create g.Title
             [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Rank)] v :> Doc]
 
-        let testList = Var.Create <| Map([(1,"a");(102,"b")])
+        let testList = Map([(1,"a");(102,"b")])
+
+//                Column.EditSelectColumn ("Rank 2" , (fun r-> r.Rank), (fun r t -> { r with Rank = t}), testList )
+//            |]
 
         let columns =
             [|
-                {Column.SimpleSortColumn ("Title" , (fun r -> r.Title)) with EditField = Some(Form.StringInput ((fun r -> r.Title), (fun r t -> {r with Title = t})))}
-                {Column.SimpleSortColumn ("Rating" , (fun r -> r.Rating)) with Header = Some(fun () -> div[text "Rating"]:> Doc)}
-                Column.SimpleSortColumn ("Voters" , (fun r -> r.Voters))
-                Column.SimpleSortColumn ("Rank" , (fun r -> r.Rank))
-                {Column.SimpleColumn (" > 2010" , (fun r -> r.Year > 2010)) with
-                    EditField = Some(Form.BoolInput ((fun r -> r.Year > 2010), (fun r t -> {r with Title = r.Title + "!!!"})))}
-                {Column.SimpleColumn (" Now" , (fun _ -> sprintf "%02i:%02i" now.Hours now.Minutes)) with
-                    EditField = Some(Form.TimeInput ((fun r -> now.Ticks), (fun r t -> r)))}
-                Column.EditSelectColumn ("Rank 2" , (fun r-> r.Rank), (fun r t -> { r with Rank = t}), testList )
+                ("Title", StringField, None)
+                ("Rating", FloatField, None)
+                ("Voters", IntField, None)
+                ("Rank", IntField, None)
+                ("Rank", SelectField testList, Some <| (fun () -> text "Rank 2"))
             |]
+            |> Array.map Column<GameObject>.Parse
+
 
         let gameTable : Table<int,Server.GameObject> =
             {
-                Id = "gameTable"
+                Id' = "gameTable"
                 DataSource =
                     {DataSource.DS<int,Server.GameObject>.Create(
                         (fun r -> r.Rank),
@@ -75,18 +56,15 @@ module Client =
                 Class = [| Striped ; Bordered |]
                 Columns = columns
             }
+
+
         let columns =
             [|
-                Column.EditTimeSpanColumn("Time",(fun t -> t.Time.Ticks),(fun t v -> {t with Time = System.TimeSpan.FromTicks v}))
-                Column.EditDateColumn("Date",(fun t -> t.Date),(fun t v -> {t with Date = v}))
-            |]
-        let testTable : Table<int,RandomType> =
-            {
-                Id = "time"
-                DataSource = DataSource.DS<int,RandomType>.Create((fun t -> t.Id), Server.GetTestData)
-                Class = [|Striped|]
-                Columns = columns
-            }
+                ("Time", TimeField)
+                ("Date", DateField)
+            |] |> Array.map Column<RandomType>.Parse
+        let testTable = Table.Create("time", (fun (t:RandomType) -> t.Id), columns, Server.GetTestData)
+
         match testTable.DataSource.CrudFunctions with
         | DataSource.Rpc fs ->
             fs.GetFunc <- Some (fun i -> async {return testTable.DataSource.Model.FindByKey i})

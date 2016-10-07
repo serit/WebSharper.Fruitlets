@@ -18,6 +18,7 @@ module DataSource =
             mutable GetFunc: ('U -> string) option
 
         }
+
     type RpcCrud<'U,'T> when 'U : equality =
         {
             mutable CreateFunc: (unit -> Async<'U>) option
@@ -91,9 +92,73 @@ module DataSource =
 
 
 
+    type SynchCrud<'U,'T> when 'U : equality =
+        {
+            mutable CreateFunc: (unit -> 'U) option
+            mutable ReadFunc: (unit -> array<'T>) option
+            mutable UpdateFunc: ('T -> bool) option
+            mutable DeleteFunc: ('T -> bool) option
+            mutable GetFunc: ('U -> 'T) option
+
+        }
+        member this.Create (currentItem: Var<'T option>) (model : ListModel<'U,'T>) =
+            match this.CreateFunc with
+            | Some cf ->
+                let result = cf ()
+                match (this.GetFunc, this.ReadFunc) with
+                | Some gf, _ ->
+                    let newItem = gf result
+                    model.Add newItem
+                    currentItem.Value <- Some newItem
+                | _, Some rf ->
+                    let retrieve = rf ()
+                    currentItem.Value <- model.TryFindByKey result
+                | _ ->
+                    currentItem.Value <- model.TryFindByKey result
+            | None -> ()
+        member this.Read (model : ListModel<'U,'T>) =
+            match this.ReadFunc with
+            | Some rf -> model.Set <| rf()
+            | None -> ()
+        member this.Update (item: 'T) (model : ListModel<'U,'T>) idFunc =
+            match this.UpdateFunc with
+            | Some uf ->
+                let result = uf item
+                if result
+                then model.UpdateBy (fun t -> Some item) (idFunc item)
+                // todo: if false, there should be an error somewhere
+            | None -> ()
+        member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
+            match this.DeleteFunc with
+            | Some df ->
+                let result = df item
+                if result
+                then model.RemoveByKey (idFunc item)
+            | None -> ()
+        static member empty =
+            {
+                CreateFunc = None
+                ReadFunc = None
+                UpdateFunc = None
+                DeleteFunc = None
+                GetFunc = None
+            }
+
+        static member Init (createFunction,readFunction,updateFunction,deleteFunction, getFunction) =
+            {
+                CreateFunc = createFunction
+                ReadFunc = readFunction
+                UpdateFunc = updateFunction
+                DeleteFunc = deleteFunction
+                GetFunc = getFunction
+            }
+
+
+
     type CRUD<'U,'T> when 'U : equality =
-        | Api of ApiCrud<'U,'T>
+        //| Api of ApiCrud<'U,'T>
         | Rpc of RpcCrud<'U,'T>
+        | Synchronous of SynchCrud<'U,'T>
 
     type DS<'U,'T> when 'U : equality =
         {
@@ -181,6 +246,30 @@ module DataSource =
                 IdFunc = idf
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Rpc <| RpcCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction,getFunction)
+                ItemSelectFunc = ItemSelectFunction
+                SortDirection = sortDirection
+            }
+        static member Create (idf,readFunction,?CreateFunction,?UpdateFunction,?DeleteFunction,?getFunction) =
+            {
+                IdFunc = idf
+                Model = ListModel.Create idf Seq.empty
+                CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction,getFunction)
+                ItemSelectFunc = None
+                SortDirection = Sort.Asc -1
+            }
+        static member Create (idf,readFunction,itemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction,?getFunction) =
+            {
+                IdFunc = idf
+                Model = ListModel.Create idf Seq.empty
+                CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction,getFunction)
+                ItemSelectFunc = Some itemSelectFunction
+                SortDirection = Sort.Asc -1
+            }
+        static member Create (idf,readFunction,sortDirection,?ItemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction,?getFunction) =
+            {
+                IdFunc = idf
+                Model = ListModel.Create idf Seq.empty
+                CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction,getFunction)
                 ItemSelectFunc = ItemSelectFunction
                 SortDirection = sortDirection
             }
