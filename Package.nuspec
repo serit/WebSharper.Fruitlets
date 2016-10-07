@@ -2,14 +2,14 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.1.1</version>
+    <version>0.1.3</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Option for synchronous data source</releaseNotes>
+    <releaseNotes>Fixed issue with dynamic foreign keys</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>

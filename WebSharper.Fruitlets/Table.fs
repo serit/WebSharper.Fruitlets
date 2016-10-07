@@ -140,17 +140,17 @@ module Table =
             }
         /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('T -> int), set : ('T -> int -> 'T), optionMap : Var<Map<int,string>>) =
-            let findInMap (map : Var<Map<int,string>>) value =
-                if map.Value.IsEmpty
+            let findInMap (map : Map<int,string>) value =
+                if map.IsEmpty
                 then ""
                 else
-                    match map.Value.TryFind value with
+                    match map.TryFind value with
                     | Some v -> v
                     | None -> ""
             { Column<'T>.empty with
                 Name = name
-                DocList = (fun t -> [text <| findInMap optionMap (get t)])
-                SortFunction = Some (fun t -> Sort.S <| findInMap optionMap (get t) )
+                DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
+                SortFunction = Some (fun t -> Sort.S <| findInMap optionMap.Value (get t) )
                 EditField = Some (Form.SelectInput (get, set, optionMap))}
         /// Use the parse functions with caution. They are not typesafe and meant to be used in combination with Reflection.
         static member Parse(name, _type) =
@@ -166,7 +166,7 @@ module Table =
             | FloatField -> Column.EditColumn(name, (fun t -> JSGetFloatField t name),(fun t v -> JSSetField t name v; t))
             | TimeField -> Column.EditTimeSpanColumn(name, (fun t -> (JSGetTimeSpanField t name).Ticks),(fun t v -> JSSetField t name (System.TimeSpan.FromTicks v); t))
             | DateField -> Column.EditDateColumn(name, (fun t -> JSGetDateTimeField t name),(fun t v -> JSSetField t name v; t))
-            | SelectField m -> 
+            | SelectField m ->
                 let varmap = Var.Create m
                 Column.EditSelectColumn(name, (fun t -> JSGetIntField t name),(fun t v -> JSSetField t name v; t), varmap)
             | SelectFieldVar m -> Column.EditSelectColumn(name, (fun t -> JSGetIntField t name),(fun t v -> JSSetField t name v; t), m)
