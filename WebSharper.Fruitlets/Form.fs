@@ -45,18 +45,17 @@ module Form =
         ) l.View
 
 
-
-    /// InputType is a lens and should be used in a form that represents a Var<'T>
-    type InputType<'T> =
-        | DisabledInput of ('T -> Doc list)
-        | StringInput of (('T -> string) * ('T -> string -> 'T))
-        | TextInput of (('T -> string) * ('T -> string -> 'T))
-        | IntInput of (('T -> int) * ('T -> int -> 'T))
-        | FloatInput of (('T -> float) * ('T -> float -> 'T))
-        | BoolInput of (('T -> bool) * ('T -> bool -> 'T))
-        | DateInput of (('T -> System.DateTime) * ('T -> System.DateTime -> 'T))
-        | TimeInput of (('T -> int64) * ('T -> int64 -> 'T))
-        | SelectInput of (('T -> int) * ('T -> int -> 'T) * Var<Map<int,string>>)
+    /// InputType is a lens and should be used in a form that represents a Var<'DataType>
+    type InputType<'DataType> =
+        | Disabled of ('DataType -> Doc list)
+        | String of (('DataType -> string) * ('DataType -> string -> 'DataType))
+        | Text of (('DataType -> string) * ('DataType -> string -> 'DataType))
+        | Int of (('DataType -> int) * ('DataType -> int -> 'DataType))
+        | Float of (('DataType -> float) * ('DataType -> float -> 'DataType))
+        | Bool of (('DataType -> bool) * ('DataType -> bool -> 'DataType))
+        | Date of (('DataType -> System.DateTime) * ('DataType -> System.DateTime -> 'DataType))
+        | Time of (('DataType -> int64) * ('DataType -> int64 -> 'DataType))
+        | Select of (('DataType -> int) * ('DataType -> int -> 'DataType) * Var<Map<int,string>>)
         member this.formWrapper label' content =
             divAttr[ attr.``class`` "form-group"][
                 labelAttr[attr.``for`` label'][text label']
@@ -69,27 +68,27 @@ module Form =
                     attr.``class`` "form-control"
 
                 ]
-            fun (t' : Var<'T option>) ->
+            fun (t' : Var<'DataType option>) ->
                 match this with
-                | DisabledInput (f) ->
+                | Disabled (getter) ->
                     Doc.BindView( fun t'' ->
-                        let s = match t'' with | Some t -> f t | None -> List.empty
+                        let s = match t'' with | Some t -> getter t | None -> List.empty
                         divAttr (attr.disabled "disabled"::attrs) s |> this.formWrapper label'
                     ) t'.View
-                | StringInput (f, f') ->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> "") (fun t s -> Some <| f' t.Value s)
+                | String (getter, setter) ->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> getter t' | None -> "") (fun t s -> Some <| setter t.Value s)
                     Doc.Input attrs s |> this.formWrapper label'
-                | TextInput (f, f') ->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> "") (fun t s -> Some <| f' t.Value s)
+                | Text (getter, setter) ->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> getter t' | None -> "") (fun t s -> Some <| setter t.Value s)
                     Doc.InputArea attrs s |> this.formWrapper label'
-                | IntInput (f, f')->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0) (fun t s -> Some <| f' t.Value s)
+                | Int (getter, setter)->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> getter t' | None -> 0) (fun t s -> Some <| setter t.Value s)
                     Doc.IntInputUnchecked attrs s |> this.formWrapper label'
-                | FloatInput (f, f')->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> 0.) (fun t s -> Some <| f' t.Value s)
+                | Float (getter, setter)->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> getter t' | None -> 0.) (fun t s -> Some <| setter t.Value s)
                     Doc.FloatInputUnchecked attrs s |> this.formWrapper label'
-                | BoolInput (f, f')->
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> f t' | None -> false) (fun t s -> Some <| f' t.Value s)
+                | Bool (getter, setter)->
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> getter t' | None -> false) (fun t s -> Some <| setter t.Value s)
                     divAttr[ attr.``class`` "checkbox"][
 
                         label[
@@ -97,18 +96,71 @@ module Form =
                             text label'
                         ]
                     ] :> Doc
-                | TimeInput (f, f') ->
-                    let timeLens = Var.Lens t' (fun t -> match t with | Some t' -> f t' | None -> 0L) (fun t s -> Some <| f' t.Value s)
+                | Time (getter, setter) ->
+                    let timeLens = Var.Lens t' (fun t -> match t with | Some t' -> getter t' | None -> 0L) (fun t s -> Some <| setter t.Value s)
                     Time.Timepicker timeLens attrs label'
 
-                | DateInput (f, f') ->
+                | Date (getter, setter) ->
                     let DateTimeToDate (t : System.DateTime) = new Date(t.Year,t.Month - 1, t.Day)
                     let DateToDateTime (t : Date) = System.DateTime.Parse(t.ToDateString())
-                    let s = Var.Lens t' (fun t -> match t with |Some t' -> DateTimeToDate(f t') | None -> new Date()) (fun t s -> Some <| (f' t.Value <| DateToDateTime s))
+                    let s = Var.Lens t' (fun t -> match t with |Some t' -> DateTimeToDate(getter t') | None -> new Date()) (fun t s -> Some <| (setter t.Value <| DateToDateTime s))
                     Time.Datepicker s attrs label'
-                | SelectInput (f, f', l) ->
-                    let s = Var.Lens t' (fun t -> match t with | Some t' -> Some <| f t' | None -> None) (fun t s -> match s with |Some v -> Some <| f' t.Value v | None -> t)
+                | Select (getter, setter, options) ->
+                    let s = Var.Lens t' (fun t -> match t with | Some t' -> Some <| getter t' | None -> None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
                     Doc.BindView( fun t ->
-                        Select' attrs l (match t with | Some t' -> f t' | None -> 0) s|> this.formWrapper label'
+                        Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s|> this.formWrapper label'
                     ) t'.View
 
+    type Validation<'DataType> =
+        {
+            ValidationFunction: 'DataType -> bool
+            OnError: string
+        }
+
+    type Form<'DataType> =
+        {
+            Fields: (string * Validation<'DataType> list * InputType<'DataType>) list
+            SubmitButtonText: string
+            SubmitSuccess: string
+            SubmitFailure: string
+            OnSubmit: ('DataType option -> Dom.Element -> Dom.Event -> bool)
+        }
+        member this.show =
+            fun t ->
+                let errorMsg = Var.Create ""
+                let fields =
+                    this.Fields |> List.map (fun (label', _, input') ->
+                        input'.show label' t)
+                let buttons =
+                    t.View
+                    |> Doc.BindView( fun t' ->
+                        buttonAttr[
+                            attr.``class`` "btn btn-info"
+                            on.submit(fun el ev ->
+
+                                match t' with
+                                | Some t'' ->
+                                    let errors =
+                                        this.Fields
+                                        |> List.map (fun (_, validations, _) ->
+                                            validations
+                                            |> List.filter (fun validation -> validation.ValidationFunction t'' |> not )
+                                        )
+                                        |> List.concat
+                                    errorMsg.Value <-
+                                        errors
+                                        |> List.map (fun validation -> validation.OnError)
+                                        |> String.concat "\n"
+                                    if List.isEmpty errors
+                                    then
+                                        if this.OnSubmit t' el ev
+                                        then
+                                            errorMsg.Value <- ""
+                                        else
+                                            errorMsg.Value <- this.SubmitFailure
+                                    else ()
+                                | None -> ()
+                                )
+                            ][text this.SubmitButtonText] :> Doc
+                         )
+                List.append fields [buttons]
