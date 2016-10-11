@@ -25,21 +25,21 @@ module Client =
             let v = Var.Create g.Title
             [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Rank)] v :> Doc]
 
-        let testList = Map([(1,"a");(102,"b")])
-
-//                Column.EditSelectColumn ("Rank 2" , (fun r-> r.Rank), (fun r t -> { r with Rank = t}), testList )
-//            |]
+        let testList = Var.Create <|Map([(1,"a");(102,"b")])
 
         let columns =
             [|
-                ("Title", StringField, None)
-                ("Rating", FloatField, None)
-                ("Voters", IntField, None)
-                ("Rank", IntField, None)
-                ("Rank", SelectField testList, Some <| (fun () -> text "Rank 2"))
+                ("Title", String, None)
+                ("Rating", Float, None)
+                ("Voters", Int, None)
+                ("Rank", Int, None)
+                ("Rank", SelectDyn testList, Some <| (fun () -> text "Rank 2"))
             |]
             |> Array.map Column<GameObject>.Parse
 
+        let createFunc () =
+            let newItem : Server.GameObject = {Title = ""; Rating = 0.; Rank = 0; Voters = 0; Year = 0}
+            async {return newItem}
 
         let gameTable : Table<int,Server.GameObject> =
             {
@@ -48,9 +48,8 @@ module Client =
                     {DataSource.DS<int,Server.GameObject>.Create(
                         (fun r -> r.Rank),
                         Server.GetGames,
-                        (fun () -> async {return 1}),
-                        (fun g -> async { gameList.UpdateBy (fun g' -> Some g') g.Rank; return true}),
-                        getFunction = (fun i -> async {return gameList.FindByKey 1})
+                        CreateFunction = createFunc,
+                        UpdateFunction = (fun t -> async{return true})
                         )
                         with SortDirection = Sort.Asc 3}
                 Class = [| Striped ; Bordered |]
@@ -60,21 +59,19 @@ module Client =
 
         let columns =
             [|
-                ("Time", TimeField)
-                ("Date", DateField)
+                ("Time", Time)
+                ("Date", Date)
             |] |> Array.map Column<RandomType>.Parse
-        let testTable = Table.Create("time", (fun (t:RandomType) -> t.Id), columns, Server.GetTestData)
-
-        match testTable.DataSource.CrudFunctions with
-        | DataSource.Rpc fs ->
-            fs.GetFunc <- Some (fun i -> async {return testTable.DataSource.Model.FindByKey i})
-            fs.UpdateFunc <- Some (fun t -> async {return testTable.DataSource.Model.UpdateBy (fun t' -> Some t) t.Id; return true})
-            fs.CreateFunc <-
-                Some(fun () -> async {
-                            let newId = testTable.DataSource.Model.Length
-                            testTable.DataSource.Model.Add({Id = newId; Time = System.TimeSpan.FromHours 3.; Date = System.DateTime.Parse("05-10-2016")})
-                            return newId})
-        | _ -> ()
+        let testTable =
+            Table.Create(
+                "time",
+                (fun (t:RandomType) -> t.Id),
+                columns, 
+                Server.GetTestData,
+                (fun () -> async {return {Id = 0; Time = System.TimeSpan.FromHours 3.; Date = System.DateTime.Parse("05-10-2016")}}),
+                (fun t -> async {return true}),
+                (fun t -> async {return true})
+                )
 
         let newName = Var.Create ""
         div [
