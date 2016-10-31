@@ -19,58 +19,47 @@ module Client =
     let now = Server.now()
 
     let Body () =
-        let gameList = ListModel.Create (fun (r: Server.GameObject) -> r.Rank) Array.empty
-
-        let inputTitleLens (g: Server.GameObject) =
-            let v = Var.Create g.Title
-            [Doc.Input [on.change (fun el ev -> gameList.UpdateBy ( fun g -> Some {g with Title = v.Value}) g.Rank)] v :> Doc]
-
-        let testList = Var.Create <|Map([(1,"a");(102,"b")])
+        let testList = Var.Create <| Map([(1,"a");(102,"b")])
 
         let columns =
             [|
                 ("Title", String, None)
                 ("Rating", Float, None)
                 ("Voters", Int, None)
-                ("Rank", Int, None)
-                ("Rank", SelectDyn testList, Some <| (fun () -> text "Rank 2"))
+                ("Rank", Int |> Optional, None)
+                ("Rank", SelectDyn testList |> Optional, Some <| (fun () -> text "Rank 2"))
             |]
             |> Array.map Column<GameObject>.Parse
 
         let createFunc () =
-            let newItem : Server.GameObject = {Title = ""; Rating = 0.; Rank = 0; Voters = 0; Year = 0}
+            let newItem : Server.GameObject = {Title = ""; Rating = 0.; Rank = None; Voters = 0; Year = 0}
             async {return newItem}
 
-        let gameTable : Table<int,Server.GameObject> =
-            {
-                Id' = "gameTable"
-                DataSource =
-                    {DataSource.DS<int,Server.GameObject>.Create(
-                        (fun r -> r.Rank),
-                        Server.GetGames,
-                        CreateFunction = createFunc,
-                        UpdateFunction = (fun t -> async{return true})
-                        )
-                        with SortDirection = Sort.Asc 3}
-                Class = [| Striped ; Bordered |]
-                Columns = columns
-            }
+        let gameTable : Table<string,Server.GameObject> = Table.Create("gameTable", (fun (r: Server.GameObject) -> r.Title),columns, Server.GetGames)
 
+
+        let createFunc () =
+            async {return {Id = 0; Time = System.TimeSpan.FromHours 3.; Date = Some <| System.DateTime.Parse("05-10-2016"); OptionalString = None}}
 
         let columns =
             [|
-                ("Time", Time)
-                ("Date", Date)
-            |] |> Array.map Column<RandomType>.Parse
+                ("Time", Time), {Table = Read; Form = ReadWrite}
+                ("Date", Date |> Optional), {Table = Invisible; Form = Read}
+                ("Date", Date |> Optional), {Table = Invisible; Form = ReadWrite}
+                ("OptionalString", (String |> Optional)), {Table = Read; Form = Read}
+                ("OptionalString", (String |> Optional)), {Table = Read; Form = ReadWrite}
+            |] |> Array.map ( fun ((name, _type), permission) ->
+                {Column<RandomType>.Parse (name, _type) with Permission = permission})
+
         let testTable =
             Table.Create(
                 "time",
                 (fun (t:RandomType) -> t.Id),
-                columns, 
+                columns,
                 Server.GetTestData,
-                (fun () -> async {return {Id = 0; Time = System.TimeSpan.FromHours 3.; Date = System.DateTime.Parse("05-10-2016")}}),
-                (fun t -> async {return true}),
-                (fun t -> async {return true})
+                createFunc,
+                Server.UpdateTestData,
+                Server.DeleteTestData
                 )
 
         let newName = Var.Create ""

@@ -46,13 +46,13 @@ module Server =
 
     [<JavaScript>]
     type GameObject =
-        { Title : string; Rating : float; Rank: int; Voters: int; Year: int}
+        { Title : string; Rating : float; Rank: int option; Voters: int; Year: int}
         static member Create () =
-            { Title = ""; Rating = 0.0; Rank = 0; Voters = 0; Year = 0}
+            { Title = ""; Rating = 0.0; Rank = None; Voters = 0; Year = 0}
         static member Create (title:string) =
             { GameObject.Create() with Title = title}
         static member Create (title:string, rating:float, rank:int,voters:int, year) =
-            { Title = title; Rating = rating; Rank = rank; Voters = voters; Year = year}
+            { Title = title; Rating = rating; Rank = Some rank; Voters = voters; Year = year}
 
 
     [<Rpc>]
@@ -97,15 +97,33 @@ module Server =
         {
             Id : int
             Time : System.TimeSpan
-            Date : System.DateTime
+            Date : System.DateTime option
+            OptionalString: string option
         }
+
+
+    let mutable RandomSeq =
+        Seq.init 5 (fun i -> i, System.DateTime.Now)
+                |> Seq.map (fun (i,dt) -> {Id = i;Time = dt.TimeOfDay; Date = None; OptionalString = None})
+                |> Seq.toArray
 
     [<Rpc>]
     let GetTestData () =
         async {
-            return
-                Seq.init 5 (fun i -> i, System.DateTime.Now)
-                |> Seq.map (fun (i,dt) -> {Id = i;Time = dt.TimeOfDay; Date = dt})
-                |> Seq.toArray
+            return RandomSeq
+        }
 
+    [<Rpc>]
+    let UpdateTestData (r : RandomType) =
+        async {
+            return
+                match Seq.tryFind (fun s -> s.Id = r.Id) RandomSeq with
+                | Some s -> Fruitlets.Result.Success r
+                | None -> Fruitlets.Result.Failure "Item not found"
+        }
+
+    [<Rpc>]
+    let DeleteTestData (r : RandomType) =
+        async {
+            return true
         }
