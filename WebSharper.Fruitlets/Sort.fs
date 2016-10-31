@@ -29,19 +29,44 @@ module Sort =
 
     [<StructuralComparison;StructuralEquality>]
     type SortableType =
-        | I of int
-        | S of string
-        | F of float
-        | D of System.DateTime
-        | B of bool
+        | Int of int
+        | String of string
+        | Float of float
+        | DateTime of System.DateTime
+        | Bool of bool
+        | IntOption of int option
+        | StringOption of string option
+        | FloatOption of float option
+        | DateTimeOption of System.DateTime option
+        | BoolOption of bool option
         static member DefaultShow =
             fun (st : SortableType) ->
                 match st with
-                | I i -> sprintf "%i" i
-                | S s -> s
-                | F f -> sprintf "%f" f
-                | D d -> d.ToShortDateString()
-                | B b -> if b then "1" else "0"
+                | Int i -> sprintf "%i" i
+                | String s -> s
+                | Float f -> sprintf "%f" f
+                | DateTime d -> d.ToShortDateString()
+                | Bool b -> if b then "1" else "0"
+                | IntOption i ->
+                    match i with
+                    | Some i' -> sprintf "%i" i'
+                    | None -> "-"
+                | StringOption s ->
+                    match s with
+                    | Some s' -> s'
+                    | None -> "-"
+                | FloatOption f ->
+                    match f with
+                    | Some f' -> sprintf "%f" f'
+                    | None -> "-"
+                | DateTimeOption d ->
+                    match d with
+                    | Some d' ->  d'.ToShortDateString()
+                    | None -> "-"
+                | BoolOption b ->
+                    match b with
+                    | Some b' -> if b' then "1" else "0"
+                    | None -> "-"
         //| T of obj //* ('T -> ColumnType<'T>)
 
 
