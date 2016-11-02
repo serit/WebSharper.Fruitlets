@@ -141,7 +141,7 @@ module Form =
                 | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString())
                 | None -> None
             let setter' = (fun (t: 'DataType) s -> setter t <| DateToDateTime s)
-            let DatePicker attrs dateLens = Time.Datepicker dateLens attrs label'
+            let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs label'
             {Label = label'; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
         /// Under construction: Logic of current value should be fixed: Reset when t' is updated
         static member SelectField label' (getter: 'DataType -> int option) setter options =
@@ -183,43 +183,49 @@ module Form =
                 labelAttr[attr.``for`` label'][text label']
                 content
             ] :> Doc
-        member this.show (label' : string) =
-            let attrs =
-                [
-                    attr.id label'
-                    attr.``class`` "form-control"
-
-                ]
-
+        member this.errorFormWrapper label' content =
+            divAttr[ attr.``class`` "form-group has-error has-feedback"][
+                labelAttr[attr.``for`` label'][text label']
+                content
+                spanAttr[attr.``class`` "glyphicon glyphicon-remove form-control-feedback"][]
+            ] :> Doc
+        member this.successFormWrapper label' content =
+            divAttr[ attr.``class`` "form-group has-success has-feedback"][
+                labelAttr[attr.``for`` label'][text label']
+                content
+                spanAttr[attr.``class`` "glyphicon glyphicon-ok form-control-feedback"][]
+            ] :> Doc
+        member this.show (label' : string, attrs : Attr list, formWrapper) =
+            //let formWrapper = this.formWrapper label'
             fun (t' : Var<'DataType option>) ->
                 match this with
                 | Disabled (getter) ->
                     Doc.BindView( fun t'' ->
                         let s = SomeOrDefault getter List.Empty t''
-                        divAttr (attr.disabled "disabled"::attrs) s |> this.formWrapper label'
+                        divAttr (attr.disabled "disabled"::attrs) s |> formWrapper
                     ) t'.View
 
                 | String (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
-                    Doc.Input attrs s |> this.formWrapper label'
+                    Doc.Input attrs s |> formWrapper
                 | StringOption (getter, setter) ->
                     OptionalInputType<'DataType,string>.StringField label' getter setter t'
                 | Text (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
-                    Doc.InputArea attrs s |> this.formWrapper label'
+                    Doc.InputArea attrs s |> formWrapper
                 | TextOption (getter, setter) ->
                     OptionalInputType<'DataType,string>.TextField label' getter setter t'
-                | Int (getter, setter)->
+                | Int (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter 0) (SomeSetter setter)
-                    Doc.IntInputUnchecked attrs s |> this.formWrapper label'
+                    Doc.IntInputUnchecked attrs s |> formWrapper
                 | IntOption (getter, setter) ->
                     OptionalInputType<'DataType,int>.IntField label' getter setter t'
-                | Float (getter, setter)->
+                | Float (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter 0.) (SomeSetter setter)
-                    Doc.FloatInputUnchecked attrs s |> this.formWrapper label'
+                    Doc.FloatInputUnchecked attrs s |> formWrapper
                 | FloatOption (getter, setter) ->
                     OptionalInputType<'DataType,float>.FloatField label' getter setter t'
-                | Bool (getter, setter)->
+                | Bool (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter false) (SomeSetter setter)
                     divAttr[ attr.``class`` "checkbox"][
 
@@ -249,7 +255,7 @@ module Form =
                     let DateTimeToDate (t : System.DateTime) = new Date(t.Year,t.Month - 1, t.Day)
                     let DateToDateTime (t : Date) = System.DateTime.Parse(t.ToDateString())
                     let s = Var.Lens t' (SomeOrDefault (DateTimeToDate << getter) (new Date())) (fun t s -> Some <| (setter t.Value <| DateToDateTime s))
-                    Time.Datepicker s attrs label'
+                    Time.Datepicker'' s attrs label'
                 | DateOption (getter, setter) ->
                     let OptionDateTimeToDate (t : System.DateTime option) =
                         match t with
@@ -259,14 +265,17 @@ module Form =
                 | Select (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
                     Doc.BindView( fun t ->
-                        Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s|> this.formWrapper label'
+                        Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s |> this.formWrapper label'
                     ) t'.View
                 | SelectOption (getter, setter, options) ->
                     OptionalInputType<'DataType,float>.SelectField label' getter setter options t'
-//                    let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
-//                    Doc.BindView( fun t ->
-//                        Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s|> this.formWrapper label'
-//                    ) t'.View
+        member this.show (label') =
+            let attrs =
+                [
+                    attr.id label'
+                    attr.``class`` "form-control"
+                ]
+            this.show(label', attrs, this.formWrapper label')
 
     type Validation<'DataType> =
         {
@@ -274,50 +283,141 @@ module Form =
             OnError: string
         }
 
+    type FormField<'DataType> =
+        {
+            Label: string
+            Validations: Validation<'DataType> list
+            Input: InputType<'DataType>
+            mutable HasError: bool
+        }
+        member this.Prevalidate t =
+            not <| List.isEmpty this.Validations
+            &&
+            this.Validations
+            |> List.filter (fun v -> not <| v.ValidationFunction t)
+            |> List.isEmpty
+        static member empty =
+            {
+                Label = ""
+                Validations = []
+                Input = Disabled (fun _ -> [])
+                HasError = false
+            }
+        static member Create (label', validations, input') =
+            {
+                Label = label'
+                Validations = validations
+                Input = input'
+                HasError = false
+            }
     type Form<'DataType> =
         {
-            Fields: (string * Validation<'DataType> list * InputType<'DataType>) list
+            Fields: FormField<'DataType> list
             SubmitButtonText: string
             SubmitSuccess: string
             SubmitFailure: string
-            OnSubmit: ('DataType option -> Dom.Element -> Dom.Event -> bool)
+            OnSubmit: ('DataType option -> Dom.Element -> Dom.MouseEvent -> bool)
         }
         member this.show =
-            fun t ->
-                let errorMsg = Var.Create ""
+            fun (t : Var<'DataType option>) ->
+                let localFields = Var.Create (this.Fields)
+                View.Sink ( fun t' ->
+                    match t' with
+                    | Some t'' ->
+                        localFields.Value |> List.iter ( fun field -> field.HasError <- not <| field.Prevalidate t'')
+                    | None -> ()
+                ) t.View
+                let errorMsg = Var.Create []
+                let successMsg = Var.Create ""
+                let errorAlert =
+                    Doc.BindView (fun errs ->
+                        if List.isEmpty errs
+                        then Doc.Empty
+                        else
+                            errs
+                            |> List.map (fun err -> li [text err] :> Doc)
+                            |> fun errList -> [ul errList :> Doc]
+                            |> divAttr[attr.``class`` "alert alert-danger"] :> Doc
+                    ) errorMsg.View
+                let successAlert =
+                    Doc.BindView (fun succ ->
+                        if succ = ""
+                        then Doc.Empty
+                        else
+                            divAttr[attr.``class`` "alert alert-success"][text succ] :> Doc
+                    ) successMsg.View
                 let fields =
-                    this.Fields |> List.map (fun (label', _, input') ->
-                        input'.show label' t)
+                    Doc.BindView( fun fields ->
+                        fields
+                        |> List.map (fun field ->
+                            if field.HasError
+                            then
+                                let attrs =
+                                    [
+                                        attr.id field.Label
+                                        attr.``class`` "form-control has-error"
+                                    ]
+                                field.Input.show (field.Label, attrs, field.Input.errorFormWrapper field.Label) t
+                            else
+                                let attrs =
+                                    [
+                                        attr.id field.Label
+                                        attr.``class`` "form-control has-success"
+                                    ]
+                                field.Input.show (field.Label, attrs, field.Input.successFormWrapper field.Label) t
+                            )
+                            |> Doc.Concat
+                    ) localFields.View
                 let buttons =
                     t.View
                     |> Doc.BindView( fun t' ->
                         buttonAttr[
                             attr.``class`` "btn btn-info"
-                            on.submit(fun el ev ->
-
+                            on.click(fun el ev ->
+                                successMsg.Value <- ""
                                 match t' with
                                 | Some t'' ->
-                                    let errors =
+                                    let errorFields =
                                         this.Fields
-                                        |> List.map (fun (_, validations, _) ->
-                                            validations
-                                            |> List.filter (fun validation -> validation.ValidationFunction t'' |> not )
+                                        |> List.map (fun field ->
+                                            { field with
+                                                Validations =
+                                                    field.Validations
+                                                    |> List.filter (fun validation ->
+                                                        validation.ValidationFunction t''
+                                                        |> not
+                                                    )
+                                            }
                                         )
-                                        |> List.concat
+                                        //|> List.concat
                                     errorMsg.Value <-
-                                        errors
-                                        |> List.map (fun validation -> validation.OnError)
-                                        |> String.concat "\n"
-                                    if List.isEmpty errors
+                                        errorFields
+                                        |> List.map ( fun field -> field.Validations )
+                                        |> List.concat
+                                        |> List.map ( fun validation -> validation.OnError )
+                                    localFields.Value <-
+                                        List.map2 ( fun a b ->
+                                            { a with HasError = not <| List.isEmpty b.Validations }
+                                        ) this.Fields errorFields
+
+                                    if
+                                        errorFields
+                                        |> List.map (fun field -> field.Validations)
+                                        |> List.concat
+                                        |> List.isEmpty
                                     then
-                                        if this.OnSubmit t' el ev
-                                        then
-                                            errorMsg.Value <- ""
-                                        else
-                                            errorMsg.Value <- this.SubmitFailure
+                                        (
+                                            if this.OnSubmit t' el ev
+                                            then
+                                                errorMsg.Value <- []
+                                                successMsg.Value <- this.SubmitSuccess
+                                            else
+                                                errorMsg.Value <- [this.SubmitFailure])
                                     else ()
+
+
                                 | None -> ()
                                 )
                             ][text this.SubmitButtonText] :> Doc
                          )
-                List.append fields [buttons]
+                errorAlert :: [successAlert] @ [fields] @ [buttons]
