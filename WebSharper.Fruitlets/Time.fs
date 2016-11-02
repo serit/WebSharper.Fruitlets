@@ -129,5 +129,23 @@ module Time =
                         ]
                 ]
         ) date.View
+    let Datepicker'' (date: IRef<Date>) attrs label' =
+        let toDateString (d: Date) = sprintf "%i-%02i-%02i" <| d.GetFullYear() <| (d.GetMonth() + 1) <| d.GetDate()
+
+        // the default input value for the HTML5 datepciker is rfc3339: (https://tools.ietf.org/html/rfc3339#section-5.6)
+        let fromDateString (s: string) =
+            try
+                let datefields = s.Split '-' |> Array.map int
+                let year, month, day = datefields.[0], datefields.[1], datefields.[2]
+                new Date(year, month - 1, day)
+            with
+                | _ ->
+                    Console.Log "Invalid date format: using today's date"
+                    new Date()
+            //sprintf "%i-%i-%i" <| d.GetFullYear() <| d.GetMonth() <| d.GetDate()
+        let dateLens =  Var.Lens date (toDateString) (fun d v -> fromDateString v)// d.SetDate(v); d)
+        divAttr[attr.``class`` "form-inline"; attr.style "margin-top:10px;"][
+            Doc.Input (attrs @ [attr.``type`` "date"; attr.valueDyn (dateLens.View)] ) dateLens |> formWrapper (label')
+        ]  :> Doc
 
 
