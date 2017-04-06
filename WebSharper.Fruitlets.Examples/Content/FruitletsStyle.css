@@ -1,0 +1,58 @@
+.fruit-btn {
+  color: white;
+  margin: 2px; }
+  .fruit-btn.fruit-btn-default {
+    background-color: #627c85;
+    border-color: #4c6168; }
+  .fruit-btn.fruit-btn-save {
+    background-color: #76bed0;
+    border-color: #50acc3; }
+  .fruit-btn.fruit-btn-create {
+    background-color: #76bed0;
+    border-color: #50acc3; }
+  .fruit-btn.fruit-btn-edit {
+    background-color: #627c85;
+    border-color: #4c6168; }
+  .fruit-btn.fruit-btn-delete {
+    background-color: #d64550;
+    border-color: #be2a35; }
+  .fruit-btn.fruit-btn-cancel {
+    background-color: #d5dfe5;
+    border-color: #b6c7d2; }
+  .fruit-btn.fruit-btn-form-add {
+    background-color: #81AE9D;
+    border-color: #639985; }
+  .fruit-btn.fruit-btn-form-remove {
+    background-color: #FB9F89;
+    border-color: #f97758; }
+  .fruit-btn.fruit-btn-icon-only {
+    border-radius: 50px; }
+.fruit-bg {
+  color: white; }
+  .fruit-bg-default {
+    background-color: #627c85; }
+  .fruit-bg-save {
+    background-color: #76bed0; }
+  .fruit-bg-create {
+    background-color: #76bed0; }
+  .fruit-bg-edit {
+    background-color: #627c85; }
+  .fruit-bg-delete {
+    background-color: #d64550; }
+  .fruit-bg-cancel {
+    background-color: #d5dfe5; }
+  .fruit-bg-form-add {
+    background-color: #81AE9D; }
+  .fruit-bg-form-remove {
+    background-color: #FB9F89; }
+.fruit-form-timepicker, .fruit-form-datepicker {
+  margin-top: 10px; }
+.fruit-table .fruit-active-row {
+  background-color: #d9edf7; }
+.fruit-pagination-position-down {
+  margin-top: 0; }
+.fruit-pagination .active .fruit-page-link {
+  background-color: #627c85;
+  border-color: #627c85; }
+
+/*# sourceMappingURL=FruitletsStyle.css.map */

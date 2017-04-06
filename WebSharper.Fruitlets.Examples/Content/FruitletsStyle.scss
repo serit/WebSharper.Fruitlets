@@ -1,0 +1,145 @@
+$button-color-map : (
+    default: #627c85,
+    save: #76bed0,
+    create: #76bed0,
+    edit: #627c85,
+    delete: #d64550,
+    cancel: #d5dfe5,
+    form-add: #81AE9D,
+    form-remove: #FB9F89
+);
+
+.fruit-{
+    &btn{
+        
+        color:white;
+        margin: 2px;
+        
+        @each $button-type, $color in $button-color-map{
+            
+            &.fruit-btn-#{$button-type}{            
+                background-color: $color;           
+                border-color: darken($color,10);
+            }
+        }
+        
+        &.fruit-btn-icon-only {
+            border-radius: 50px;
+        }
+                
+    }
+    &bg{
+        
+        color:white;
+        
+        @each $bg-type, $color in $button-color-map{
+            
+            &-#{$bg-type}{            
+                background-color: $color; 
+            }
+        }
+                
+    }
+    
+    &form{
+        &-select{
+            
+            &-option{
+                
+            }
+            
+        }
+        
+        &-control{}
+        &-group{}
+        &-input-group{
+            
+            &-btn{}
+        }
+        
+        &-checkbox{
+            
+        }
+        
+        &-timepicker, &-datepicker{
+            
+            margin-top:10px;
+        }
+        
+    }
+    
+    &modal{
+        
+        .fruit-modal-{
+            &header{ }
+            &content{ }
+            &body{ }
+            &footer{ }
+            
+            &close{ }
+        }
+        
+    }
+    
+    &table{
+        
+        &-wrapper{
+            
+        }
+        
+        .fruit-{
+            
+            &table-head{
+                .fruit-table-head-row{}
+                
+            }
+            
+            &table-body{
+                .fruit-table-body-row{}
+                
+            }
+               
+            &edit-btn-column{
+                
+            }
+            
+            &active-row{
+                background-color: #d9edf7;
+                
+            }
+            
+        }
+    }
+    
+    &pagination{
+        
+        &-position-down{
+            
+            margin-top: 0;
+        }
+        
+        .fruit-page{}
+        .fruit-page-item{}
+        .active .fruit-page-link{
+            background-color: map-get($button-color-map,default);
+            border-color: map-get($button-color-map,default);
+            
+        }
+        
+    }
+    
+    &nav{
+        
+        &-tabs{}
+        
+    }
+    
+    &tab{
+        &-content{}
+        &-pane{}
+        
+    }
+    
+    
+    
+}

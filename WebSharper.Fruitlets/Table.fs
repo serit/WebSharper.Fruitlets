@@ -168,60 +168,59 @@ module Table =
         /// A string option field
         static member EditColumn (name, get : ('DataType -> string option), set : ('DataType -> string option -> 'DataType)) =
             let SomeOrDefault = function
-                |Some t' -> t'
-                |None -> "-"
+                | Some t' -> t'
+                | None -> "-"
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [ text << SomeOrDefault <| get t])
                 SortFunction = Some (fun t -> Sort.String << SomeOrDefault <| get t )
-                EditField = Some (Form.StringOption ( get, set))
-            }
+                EditField = Some (Form.StringOption ( get, set)) }
         /// An int field
         static member EditColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType)) =
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << string <| get t ])
                 SortFunction = Some (fun t -> Sort.Int <| get t )
-                EditField = Some (Form.Int (get, set))
-            }
+                EditField = Some (Form.Int (get, set)) }
         /// An int option field
         static member EditColumn (name, get : ('DataType -> int option), set : ('DataType -> int option -> 'DataType)) =
             let SomeOrDefaultString = function
-                |Some t' -> string t'
-                |None -> "-"
+                | Some t' -> string t'
+                | None -> "-"
             let SomeOrDefaultSort = function
-                |Some t' -> t'
-                |None -> 0
+                | Some t' -> t'
+                | None -> 0
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.Int << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.IntOption (get, set))
-            }
+                EditField = Some (Form.IntOption (get, set)) }
 
         static member EditColumn (name, get : ('DataType -> float), set : ('DataType -> float -> 'DataType)) =
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << string <| get t ])
                 SortFunction = Some (fun t -> Sort.Float <| get t )
-                EditField = Some (Form.Float (get, set))
-            }
+                EditField = Some (Form.Float (get, set)) }
         static member EditColumn (name, get : ('DataType -> float option), set : ('DataType -> float option -> 'DataType)) =
             let SomeOrDefaultString = function
-                |Some t' -> string t'
-                |None -> "-"
+                | Some t' -> string t'
+                | None -> "-"
             let SomeOrDefaultSort = function
-                |Some t' -> t'
-                |None -> 0.
+                | Some t' -> t'
+                | None -> 0.
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.Float << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.FloatOption (get, set))
-            }
+                EditField = Some (Form.FloatOption (get, set)) }
 
         static member EditColumn (name, get : ('DataType -> bool), set : ('DataType -> bool -> 'DataType)) =
-            { Column<'DataType>.empty with Name = name; DocList = (fun t -> [text <| if get t then "\u00D7" else "" ]); SortFunction = Some (fun t -> Sort.Bool <| get t ); EditField = Some (Form.Bool (get, set))}
+            { Column<'DataType>.empty with 
+                Name = name
+                DocList = (fun t -> [text <| if get t then "\u00D7" else "" ])
+                SortFunction = Some (fun t -> Sort.Bool <| get t )
+                EditField = Some (Form.Bool (get, set)) }
 
         /// TimeSpan Field
         static member EditTimeSpanColumn (name, get : ('DataType -> System.TimeSpan), set : ('DataType -> System.TimeSpan -> 'DataType)) =
@@ -229,18 +228,18 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << Time.showTime <| (get t).Ticks ])
                 SortFunction = Some (fun t -> Sort.Int << int <| (get t).Ticks )
-                EditField = Some (Form.Time (get, set))
-            }
+                EditField = Some (Form.Time (get, set)) }
+
         /// TimeSpan option Field
         static member EditTimeSpanColumn (name, get : ('DataType -> System.TimeSpan option), set : ('DataType -> System.TimeSpan option -> 'DataType)) =
             let SomeOrDefaultString (t: System.TimeSpan option) =
                 match t with
-                |Some t' -> Time.showTime (t'.Ticks)
-                |None -> "-"
+                | Some t' -> Time.showTime (t'.Ticks)
+                | None -> "-"
             let SomeOrDefaultSort (t: System.TimeSpan option) =
                 match t with
-                |Some t' -> int (t'.Ticks)
-                |None -> 0
+                | Some t' -> int (t'.Ticks)
+                | None -> 0
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
@@ -255,23 +254,21 @@ module Table =
                     let dt = get t |> fun dt' -> new Date(dt'.Year,dt'.Month - 1, dt'.Day)
                     [text <| dt.ToDateString() ])
                 SortFunction = Some (fun t -> Sort.DateTime <| (get t ))
-                EditField = Some (Form.Date (get, set))
-            }
+                EditField = Some (Form.Date (get, set)) }
         /// Under construction
         static member EditDateColumn (name, get : ('DataType -> System.DateTime option), set : ('DataType -> System.DateTime option -> 'DataType)) =
             let SomeOrDefaultString (dt: System.DateTime option) =
                 match dt with
-                |Some dt' -> (new Date(dt'.Year,dt'.Month - 1, dt'.Day)).ToDateString()
-                |None -> "-"
+                | Some dt' -> (new Date(dt'.Year,dt'.Month - 1, dt'.Day)).ToDateString()
+                | None -> "-"
             let SomeOrDefaultSort = function
-                |Some t' -> t'
-                |None -> System.DateTime.Parse("01-01-1970")
+                | Some t' -> t'
+                | None -> System.DateTime.Parse("01-01-1970")
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.DateTime << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.DateOption (get, set))
-            }
+                EditField = Some (Form.DateOption (get, set)) }
 
         /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType), optionMap : Var<Map<int,string>>) =
@@ -283,7 +280,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
-                EditField = Some (Form.Select (get, set, optionMap))}
+                EditField = Some (Form.Select (get, set, optionMap)) }
 
         /// This column can be used to represent and change Nullable foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int option), set : ('DataType -> int option -> 'DataType), optionMap : Var<Map<int,string>>) =
@@ -298,9 +295,9 @@ module Table =
                 Name = name
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
-                EditField = Some (Form.SelectOption (get, set, optionMap))}
+                EditField = Some (Form.SelectOption (get, set, optionMap)) }
 
-        /// Use the parse functions with caution. They are not typesafe and meant to be used in combination with Reflection.
+        /// Use the parse functions with caution. They are not typesafe and meant to be used on the client side in combination with Reflection on the server side.
         static member Parse(name, _type) =
             let IntGetter = (fun (t: 'DataType) -> JSGetIntField t name)
             let IntOptionGetter = (fun (t: 'DataType) -> JSGetIntFieldOption t name)
@@ -339,7 +336,7 @@ module Table =
                     Column.EditSelectColumn(name, IntOptionGetter, defaultSetter name, varmap)
                 | SelectDyn m -> Column.EditSelectColumn(name, IntOptionGetter, defaultSetter name, m)
                 | Optional field' -> Column<'DataType>.Parse (name, Optional field')
-        /// Use the parse functions with caution. They are not typesafe and meant to be used in combination with Reflection.
+        /// Use the parse functions with caution. They are not typesafe and meant to be used on the client side in combination with Reflection on the server side.
         static member Parse(name, _type, header) =
             { Column<'DataType>.Parse(name, _type) with Header = header }
 
@@ -350,20 +347,23 @@ module Table =
             DataSource: DataSource.DS<'Key,'DataType>
             Columns: Column<'DataType> []
         }
+        member this.ErrorStatus =
+            match this.DataSource.CrudFunctions with
+            | DataSource.CRUD.Rpc rpc -> rpc.ErrorStatus
+            | DataSource.CRUD.Synchronous syn -> syn.ErrorStatus
         member this.isEditable =
             this.Columns
             |> Array.exists (fun c -> c.EditField.IsSome)
-        member this.isDeletable =
-            this.DataSource.DeleteFunc
+        member this.isDeletable = this.DataSource.DeleteFunc
         member private this.SaveButton (t : 'DataType) =
             buttonAttr[
-                attr.``class`` "btn btn-primary"
+                attr.``class`` "btn btn-primary fruit-btn fruit-btn-save"
                 attr.``data-`` "dismiss" "modal"
                 on.click (fun el ev ->
                     this.DataSource.Update t
                     )][text "Save"] :> Doc
         member private this.DeleteButton (t : 'DataType) =
-            let modalId = sprintf "confirm-delete-%A" (this.DataSource.IdFunc t)
+            let modalId = sprintf "confirm-delete-%s-%s" this.Id' <| (this.DataSource.IdFunc t).ToString()
             let confirmDialog () =
                 let modalwindow =
                     Modal.Window.Create
@@ -372,14 +372,14 @@ module Table =
                         (text "Are you sure you want to delete this item?")
                         (div[
                             buttonAttr[
-                                attr.``class`` "btn btn-danger"
+                                attr.``class`` "btn btn-danger fruit-btn fruit-btn-delete"
                                 attr.``data-`` "dismiss" "modal"
                                 on.click (fun el ev ->
                                     // TODO: confirmation popup
                                     this.DataSource.Delete t
                                     )][text "Delete"] :> Doc
                             buttonAttr[
-                                attr.``class`` "btn btn-default"
+                                attr.``class`` "btn btn-default fruit-btn fruit-btn-cancel"
                                 attr.``data-`` "dismiss" "modal"][text "Cancel"] :> Doc
 
                         ])
@@ -389,22 +389,17 @@ module Table =
                 confirmDialog()
                 Modal.Button modalId
                     [
-                        attr.``class`` "btn btn-danger"
+                        attr.``class`` "btn btn-danger fruit-btn fruit-btn-delete fruit-btn-icon-only"
                     ] [iAttr[attr.``class`` "fa fa-trash"][]]
             ] :> Doc
-
-
         member private this.EditFooter (t : 'DataType option) =
             match t with
             | Some v ->
                 div[
-                    buttonAttr[attr.``class`` "btn btn-secondary"; attr.``data-`` "dismiss" "modal"][text "Close"] :> Doc
+                    buttonAttr[attr.``class`` "btn btn-secondary fruit-btn fruit-btn-cancel"; attr.``data-`` "dismiss" "modal"][text "Close"] :> Doc
                     (if this.DataSource.UpdateFunc
                     then this.SaveButton v
                     else Doc.Empty)
-//                    (if this.DataSource.DeleteFunc
-//                    then this.DeleteButton v
-//                    else Doc.Empty)
                 ] :> Doc
             | None -> Doc.Empty
         member this.EditWindow (item : Var<'DataType option>) windowId =
@@ -419,11 +414,11 @@ module Table =
                     | Some editField, _ -> editField.show column.Name item
                 )
                 |> Array.toList
-                |> form
+                |> formAttr [attr.``class`` "fruit-form"]
 
             Modal.Window.Create
                 windowId
-                (h2 [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "Item %A" (this.DataSource.IdFunc t') | None -> "")) item.View ] )
+                (h2Attr [attr.``class`` "fruit-modal-header"] [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "Item %A" (this.DataSource.IdFunc t') | None -> "")) item.View ] )
                 (editForm ())
                 (Doc.BindView (fun t -> this.EditFooter t) item.View)
                 Modal.WindowSize.Normal
@@ -436,7 +431,7 @@ module Table =
                 div[
                     (this.EditWindow currentItem newModalId).Show()
                     buttonAttr[
-                        attr.``class`` "btn btn-success"
+                        attr.``class`` "btn btn-success fruit-btn fruit-btn-create fruit-btn-icon-only"
                         attr.``data-`` "toggle" "modal"
                         attr.``data-`` "target" <| "#" + newModalId
                         on.click (fun el ev -> this.DataSource.Create currentItem)
@@ -448,32 +443,33 @@ module Table =
             else Doc.Empty
         member this.ShowHeader () =
             // add an extra column with an edit button
-            let extracol = if this.isEditable || this.isDeletable then [|td[] :> Doc|] else [||]
+            let extracol = 
+                if this.isEditable || this.isDeletable then 
+                    [| tdAttr[ attr.``class`` "fruit-edit-btn-column" ][] :> Doc |] 
+                else [||]
 
             this.Columns
             |> Array.indexed
             |> Array.filter ( fun (_, column) ->
-                column.Permission.Table <> Invisible
-            )
+                column.Permission.Table <> Invisible )
             |> Array.map (fun (index, column) ->
-                column.showHeader index this.DataSource
-            )
+                column.showHeader index this.DataSource )
             |> flip Array.append extracol
-            |> fun headerRow -> thead[tr headerRow] :> Doc
+            |> fun headerRow -> theadAttr[attr.``class`` "fruit-table-head"][trAttr [attr.``class`` "fruit-table-head-row"] headerRow] :> Doc
         member private this.ShowTableFilter (filter: 'DataType -> bool ) (currentItem : Var<'DataType option>) =
             let idCode = sprintf "%s-edit-%i" this.Id' ( int <| (Math.Random() * 100000.) + 1.)
             let editdeleteColumn t =
                 if this.isEditable || this.isDeletable
                 then
                     [
-                        td [
+                        tdAttr[attr.``class`` "fruit-edit-btn-column"][
                             (
                                 if this.isEditable
                                 then
                                     Modal.Button
                                         idCode
-                                        [on.click( fun el ev -> currentItem.Value <- Some t)]
-                                        [iAttr[ attr.``class`` "fa fa-edit"][]] :> Doc
+                                        [attr.``class``  "btn btn-primary fruit-btn fruit-btn-edit fruit-btn-icon-only"; on.click( fun el ev -> currentItem.Value <- Some t) ]
+                                        [ iAttr[ attr.``class`` "fa fa-edit"][] ] :> Doc
                                 else Doc.Empty)
                             (
                                 if this.isDeletable
@@ -495,27 +491,22 @@ module Table =
                             column.showRow t :> Doc )
                         |> flip Array.append ( editdeleteColumn t )
                     trAttr [
-                        on.click
-                            (fun el ev ->
-                            JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("active-row").RemoveAttr("style") |> ignore
-                            el.SetAttribute ("class", "active-row")
-                            el.SetAttribute ("style", "background: #d9edf7")
+                        on.click (fun el ev ->
+                            JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row").RemoveAttr("style") |> ignore
+                            el.SetAttribute ("class", "fruit-active-row")
                             match this.DataSource.ItemSelectFunc with
                             | Some selectF -> selectF t el ev
                             | None -> ()
-
                         )
                     ] row :> Doc
                 )
                 |> Seq.toList
             let classes =
-                if Array.isEmpty this.Class
-                then
-                    "table"
+                if Array.isEmpty this.Class then "table fruit-table"
                 else
                     this.Class
                     |> Array.map (fun cl -> cl.show)
-                    |> Array.append [|"table"|]
+                    |> Array.append [|"table"; "fruit-table"|]
                     |> String.concat " "
             div [
                 (if this.isEditable
@@ -525,13 +516,15 @@ module Table =
                     attr.``class`` classes
                     attr.id this.Id'
                     ]
-                    (this.ShowHeader() :: [tbody <| rows this.DataSource.Model.Value])
+                    (this.ShowHeader() :: [tbodyAttr [attr.``class`` "fruit-table-body"] <| rows this.DataSource.Model.Value])
             ]
         /// Show all data in a table
         member this.ShowTable () =
             let currentItem = Var.Create None
             this.DataSource.Read()
-            div[
+            divAttr[
+                attr.``class`` "fruit-table-wrapper"
+            ][
                 this.CreateButton()
                 Doc.BindView ( fun _ ->
                     this.ShowTableFilter (fun _ -> true) currentItem
@@ -542,7 +535,9 @@ module Table =
             let currentPage = Var.Create 0
             let currentItem = Var.Create None
             this.DataSource.Read()
-            div[
+            divAttr[
+                attr.``class`` "fruit-table-wrapper"
+            ][
                 this.CreateButton()
                 Doc.BindView ( fun rowdata ->
                     let pages =
@@ -561,6 +556,7 @@ module Table =
                 DataSource = DataSource.DS<'Key,'DataType>.Create (id, (fun () -> async{return Array.empty}))
                 Columns = [||]
             }
+        /// Create a read only table based on an asynchronous source
         static member Create (Id, (keyFunction: ('DataType -> 'Key)), columns, (readFunc: unit -> Async<array<'DataType>>)) =
            {
                 Id' = Id
@@ -568,6 +564,7 @@ module Table =
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
             }
+        /// Create a table based on an asynchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
            {
                 Id' = Id
@@ -575,6 +572,7 @@ module Table =
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
             }
+        /// Create a table based on an asynchronous, editable source + a function for when an item is selected
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (itemSelectFunc), (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
            {
                 Id' = Id
@@ -582,6 +580,7 @@ module Table =
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, itemSelectFunc, createFunc, updateFunc, deleteFunc)
             }
+        /// Create a table based on a synchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
            {
                 Id' = Id

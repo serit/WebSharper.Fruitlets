@@ -17,6 +17,8 @@ module Modal =
         | Normal
         | Large
         | Custom of int * int
+
+
     and Window =
         {
             Id: string
@@ -29,11 +31,11 @@ module Modal =
 
             let dialogSizeAttrs =
                 match this.Size with
-                | Large -> [attr.``class`` "modal-dialog modal-lg"]
-                | _ -> [attr.``class`` "modal-dialog"]
+                | Large -> [attr.``class`` "modal-dialog modal-lg fruit-modal-dialog fruit-modal-lg"]
+                | _ -> [attr.``class`` "modal-dialog fruit-modal-dialog"]
 
             divAttr[
-                attr.``class`` "modal fade"
+                attr.``class`` "modal fade fruit-modal"
                 attr.id this.Id
                 attr.tabindex "-1"
                 Attr.Create "role" "dialog"
@@ -43,17 +45,17 @@ module Modal =
                     [
                      Attr.Create "role" "document"
                     ] @ dialogSizeAttrs )[
-                        divClass "modal-content fs-modal-content"
+                        divClass "modal-content fruit-modal-content"
                             [
-                                divClass "modal-header" [
+                                divClass "modal-header fruit-modal-header" [
                                     buttonAttr[
-                                        attr.``class`` "close"
+                                        attr.``class`` "close fruit-modal-close"
                                         attr.``data-`` "dismiss" "modal"
                                         ][text "\u00D7"]
                                     this.Header
                                 ]
-                                divClass "modal-body" [this.Body]
-                                divClass "modal-footer" [this.Footer]
+                                divClass "modal-body fruit-modal-body" [this.Body]
+                                divClass "modal-footer fruit-modal-footer" [this.Footer]
                             ]
                     ]
             ] :> Doc
@@ -79,7 +81,7 @@ module Modal =
         buttonAttr (
             [
                 attr.``type`` "button"
-                attr.``class`` "btn btn-primary"
+                attr.``class`` "btn btn-primary fruit-btn"
                 attr.``data-`` "toggle" "modal"
                 attr.``data-`` "target" <| "#" + Id
             ] @ attrList )[
@@ -90,7 +92,7 @@ module Modal =
         buttonAttr (
             [
                 attr.``type`` "button"
-                attr.``class`` "btn btn-primary"
+                attr.``class`` "btn btn-primary fruit-btn"
                 attr.``data-`` "toggle" "modal"
                 attr.``data-`` "target" <| "#" + Id
             ] @ attrList ) docList
@@ -99,7 +101,7 @@ module Modal =
         divClass "modal-header" [
             buttonAttr[
                 attr.``type`` "button"
-                attr.``class`` "close"
+                attr.``class`` "close fruit-modal-close"
                 attr.``data-`` "dismiss" "modal"
             ][text "x"]
             h4[text title]

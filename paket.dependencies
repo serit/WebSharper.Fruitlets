@@ -12,3 +12,8 @@ nuget WebSharper >= 3.6.10.230
 nuget WebSharper.UI.Next
 nuget Mono.Cecil
 nuget FSharp.Data
+
+nuget Canopy
+nuget FsCheck
+#nuget FsCheck.NUnit
+#nuget FsCheck.XUnit

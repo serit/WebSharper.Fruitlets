@@ -2,14 +2,14 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.1.4</version>
+    <version>0.2.2</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Renamed fieldclasses, removed get function, create function returns an object</releaseNotes>
+    <releaseNotes>More class attributes</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>

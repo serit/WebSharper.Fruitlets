@@ -15,9 +15,9 @@ module Pagination =
     let show (pageContent : seq<int*Doc>) position =
         let currentPage = Var.Create 0
         let PreviousPage () =
-            liAttr[attr.``class`` "page-item"][
+            liAttr[attr.``class`` "fruit-page-item"][
                 aAttr[
-                    attr.``class`` "page-link"
+                    attr.``class`` "fruit-page-link fruit-page-previous"
                     attr.href "#"
                     on.click (fun _ _ ->
                         if currentPage.Value > 0
@@ -28,13 +28,13 @@ module Pagination =
             ] :> Doc
 
         let NextPage () =
-            liAttr[attr.``class`` "page-item"][
+            liAttr[attr.``class`` "fruit-page-item"][
                 aAttr[
                     on.click (fun _ _ ->
                         if currentPage.Value < (Seq.length pageContent) - 1
                         then currentPage.Value <- currentPage.Value + 1
                     )
-                    attr.``class`` "page-link"
+                    attr.``class`` "fruit-page-link fruit-page-next"
                     attr.href "#"
                     ][ text "\u00bb"
                     ]
@@ -45,12 +45,12 @@ module Pagination =
                 attr.classDyn <|
                     View.Map ( fun page ->
                         if page = index
-                        then "page-item active"
-                        else "page-item"
+                        then "fruit-page-item active"
+                        else "fruit-page-item"
                     ) currentPage.View
                 ][
                 aAttr[
-                    attr.``class`` "page-link"
+                    attr.``class`` "fruit-page-link fruit-bg-default"
                     attr.href "#"
                     on.click (fun _ _ ->
                         currentPage.Value <- index
@@ -60,7 +60,12 @@ module Pagination =
             ] :> Doc
 
         let pagination attrs =
-            ulAttr([attr.``class`` "pagination"] @ attrs)
+            let positionClass = 
+                "pagination fruit-pagination fruit-pagination-position-" +
+                match position with
+                | Up -> "up"
+                | Down -> "down"
+            ulAttr([attr.``class`` positionClass] @ attrs)
                 ( [PreviousPage ()]
                     @ (
                         pageContent
@@ -78,8 +83,8 @@ module Pagination =
                             attr.classDyn <|
                                 View.Map ( fun page ->
                                     if page = index
-                                    then ""
-                                    else "hidden"
+                                    then "fruit-page"
+                                    else "fruit-page hidden"
                                 ) currentPage.View
                         ][
                             page
@@ -89,5 +94,5 @@ module Pagination =
         div (
                 match position with
                 | Up -> [pagination []] @ content
-                | Down -> content @ [pagination [attr.style "margin-top: 0"]]
+                | Down -> content @ [pagination []]
             )

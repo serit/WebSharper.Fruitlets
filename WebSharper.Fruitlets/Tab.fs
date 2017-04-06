@@ -30,8 +30,8 @@ module Tab =
         member this.ShowDiv () =
             let cls =
                 if this.Active
-                then "tab-pane fade in active"
-                else "tab-pane fade"
+                then "tab-pane fade in active fruit-tab-pane"
+                else "tab-pane fade fruit-tab-pane"
             divAttr[
                 attr.id this.Id
                 attr.``class`` cls
@@ -43,11 +43,11 @@ module Tab =
     let ShowHeader (tabList : Tab list) =
         tabList
         |> List.map (fun t -> t.ShowLink())
-        |> ulAttr [attr.``class`` "nav nav-tabs"]
+        |> ulAttr [attr.``class`` "nav nav-tabs fruit-nav fruit-nav-tabs"]
 
     let ShowContent (tabList : Tab list) =
         tabList
         |> List.map (fun t -> t.ShowDiv())
-        |> divAttr [attr.``class`` "tab-content"]
+        |> divAttr [attr.``class`` "tab-content fruit-tab-content"]
 
 

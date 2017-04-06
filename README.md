@@ -40,3 +40,9 @@ Creates a BootStrap modal window, based on Doc components for header, body and f
 
 ## Pagination
 
+## Nuget
+
+Create a new package by updating the Package.nuspec file with version and releaseNotes and running
+
+    nuget pack
+

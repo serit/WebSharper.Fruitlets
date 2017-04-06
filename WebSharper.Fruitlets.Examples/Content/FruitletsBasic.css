@@ -1,0 +1,22 @@
+.fruit-btn {
+  color: white; }
+  .fruit-btn.fruit-btn-save {
+    background-color: mediumseagreen; }
+  .fruit-btn.fruit-btn-create {
+    background-color: blue; }
+  .fruit-btn.fruit-btn-delete {
+    background-color: red; }
+  .fruit-btn.fruit-btn-cancel {
+    background-color: #aaa; }
+  .fruit-btn.fruit-btn-form-add {
+    background-color: green; }
+  .fruit-btn.fruit-btn-form-remove {
+    background-color: red; }
+.fruit-form-timepicker, .fruit-form-datepicker {
+  margin-top: 10px; }
+.fruit-table .fruit-active-row {
+  background-color: #d9edf7; }
+.fruit-pagination-position-down {
+  margin-top: 0; }
+
+/*# sourceMappingURL=FruitletsBasic.css.map */

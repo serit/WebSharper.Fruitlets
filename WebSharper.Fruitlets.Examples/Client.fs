@@ -15,55 +15,14 @@ open Server
 [<JavaScript>]
 module Client =
 
-    type InputForm =
-        {
-            First: string
-            Last: string
-            Age: int
-        }
-
-    let emptyForm = Var.Create <| Some {First= ""; Last = ""; Age = 0}
-
     open WebSharper.Fruitlets.Table
-    open WebSharper.Fruitlets.Form
     let now = Server.now()
 
+    let BusBody () =
+        aAttr[attr.href "http://ansatt.norgesbuss.no"][text "Proceed to login"]
+
     let Body () =
-
-        let hasCapital (s:string) =
-            s.Length > 0
-            &&
-            List.exists ((=) s.[0]) ['A'..'Z']
-
-        let firstHasCapital =
-            {
-                ValidationFunction = (fun i -> hasCapital i.First)
-                OnError = "First name should start with a capital"
-            }
-        let firstNotEmpty =
-            {
-                ValidationFunction = (fun i -> i.First <> "")
-                OnError = "First name can not be empty"
-            }
-        let lastMoreThan2 =
-            {
-                ValidationFunction = (fun i -> i.Last.Length > 2)
-                OnError = "Last name should contain more than 2 characters"
-            }
-
-        let testForm =
-            {
-                Fields =
-                    [
-                        FormField<InputForm>.Create ("First", [firstHasCapital; firstNotEmpty], InputType.String ((fun i -> i.First), fun i f -> {i with First = f}))
-                        FormField<InputForm>.Create ("Last", [lastMoreThan2], InputType.String ((fun i -> i.Last), fun i l -> {i with Last = l}))
-                    ]
-                SubmitButtonText = "Submit"
-                SubmitSuccess = "Success"
-                SubmitFailure = "Failure"
-                OnSubmit = fun (t: InputForm option) el ev -> Console.Log t; true
-            }
-
+    
         let testList = Var.Create <| Map([ ( 1, "a" ); ( 102, "b" ) ])
 
         let columns =
@@ -94,30 +53,67 @@ module Client =
                 ("OptionalString", (FieldClass.String |> Optional)), {Table = Read; Form = ReadWrite}
             |] |> Array.map ( fun ((name, _type), permission) ->
                 {Column<RandomType>.Parse (name, _type) with Permission = permission})
-
-        let testTable =
-            Table.Create(
-                "time",
-                (fun (t:RandomType) -> t.Id),
-                columns,
-                Server.GetTestData,
-                createFunc,
-                Server.UpdateTestData,
-                Server.DeleteTestData
-                )
+//
+//        let testTable =
+//            Table.Create(
+//                "time",
+//                (fun (t:RandomType) -> t.Id),
+//                columns,
+//                Server.GetTestData,
+//                createFunc,
+//                Server.UpdateTestData,
+//                Server.DeleteTestData
+//                )
 
         let newName = Var.Create ""
+        let loaded = ref false
         div [
-              h2 [text "Testform"]
-              div <| testForm.show emptyForm
               h2 [text "Test"]
-              testTable.ShowTable()
+              //testTable.ShowTable()
               h2 [text "Games"]
               gameTable.ShowTableWithPages 5
+
+//              iframeAttr[
+//                // attr.src "/ansatt" //"about:blank" 
+//                attr.src "http://ansatt.norgesbuss.no"
+//                attr.id "ansatt-iframe"
+//                attr.style "width:500px;height:800px;"
+//                ][
+//                ]
+//                on.load(fun el ev ->
+//                    if not !loaded then
+//                        el.AppendChild(
+//                            (divAttr[attr.id "ansatt-iframe-div"][]).Dom
+//                        )|> ignore
+//                        JQuery.JQuery("#ansatt-iframe div#ansatt-iframe-div").Html("<object data=\"http://ansatt.norgesbuss.no\">") |> ignore
+//                    loaded := true
+//                    )
+//                on.load(fun el ev ->
+//                    JS.Window.Location.Assign "http://ansatt.norgesbuss.no"
+//                )
+//                attr.id "ansatt-iframe"
+//                on.load(fun el ev ->
+//                    //JS.Window.Location.Assign "http://ansatt.norgesbuss.no"
+//                    if not !loaded then
+//                        JS.Document.GetElementById("ansatt-iframe").SetAttribute("src", "http://ansatt.norgesbuss.no")
+//                    loaded := true
+//                )
+//              divAttr[
+//                attr.id "ansatt-iframe-div"
+//                
+//                on.afterRender(fun el ->
+//                    if not !loaded then
+//                        JQuery.JQuery("div#ansatt-iframe-div").Load("//ansatt.norgesbuss.no") |> ignore
+//                    loaded := true
+//                    )
+//              
+//              ][]
         ]
 
 type Endpoint =
     |[<EndPoint "/">] Home
+    |[<EndPoint "/form">] Form
+    |[<EndPoint "/ansatt">] Buss
 
 module Site =
 
@@ -132,4 +128,14 @@ module Site =
                 Content.Page(
                     IndexTemplate.Doc(
                         body = [div [ client <@ Client.Body() @>]]
+                     ))
+            | Form ->
+                Content.Page(
+                    IndexTemplate.Doc(
+                        body = [div [ client <@ FormClient.FormPage() @>]]
+                     ))
+            | Buss ->
+                Content.Page(
+                    IndexTemplate.Doc(
+                        body = [div [ client <@ Client.BusBody() @>]]
                      ))

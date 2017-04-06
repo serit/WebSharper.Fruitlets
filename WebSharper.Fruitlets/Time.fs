@@ -9,7 +9,7 @@ open WebSharper.UI.Next.Html
 [<JavaScript>]
 module Time =
     let private formWrapper label' content =
-        divAttr[ attr.``class`` "form-group"][
+        divAttr[ attr.``class`` "form-group fruit-form-group"][
             labelAttr[attr.``for`` label'][text label']
             content
         ] :> Doc
@@ -43,7 +43,7 @@ module Time =
         let hourList = [0..23]
         let minuteList = [0..59]
 
-        divAttr[attr.``class`` "form-inline"; attr.style "margin-top:10px;"][
+        divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-timepicker"][
             Doc.Select attrs showT hourList hourLens |> formWrapper (label' + " ")
             Doc.Select attrs showT minuteList minLens |> formWrapper (":")
         ]  :> Doc
@@ -67,7 +67,7 @@ module Time =
             | _ -> "Dec"
         let dayLens = Var.Lens date (fun d -> d.GetDate()) (fun d v -> d.SetDate(v); d)
         let dayList = [0..31]
-        divAttr[attr.``class`` "form-inline"; attr.style "margin-top:10px;"][
+        divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
             Doc.Select attrs string yearList yearLens |> formWrapper (label')
             Doc.Select attrs monthShow monthList monthLens |> formWrapper " - "
             Doc.Select attrs string dayList dayLens |> formWrapper " - "
@@ -107,7 +107,7 @@ module Time =
                 [
                     buttonAttr
                         [
-                            attr.``class`` "btn btn-default dropdown-toggle"
+                            attr.``class`` "btn btn-default dropdown-toggle fruit-btn fruit-dropdown-toggle"
                             attr.``data-`` "toggle" "dropdown"
                         ]
                         [
@@ -116,11 +116,11 @@ module Time =
                         ]
                     divAttr
                         [
-                            attr.``class`` "dropdown-menu"
+                            attr.``class`` "dropdown-menu fruit-dropdown-menu"
                         ][
                             text "test"
 
-                            divAttr[attr.``class`` "form-inline"; attr.style "margin-top:10px;"][
+                            divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
                                 Doc.Select [on.click(fun el ev -> ev.StopPropagation())] string yearList yearLens |> formWrapper (label')
                                 Doc.Select attrs monthShow monthList monthLens |> formWrapper " - "
                                 Doc.Select attrs string dayList dayLens |> formWrapper " - "
@@ -144,7 +144,7 @@ module Time =
                     new Date()
             //sprintf "%i-%i-%i" <| d.GetFullYear() <| d.GetMonth() <| d.GetDate()
         let dateLens =  Var.Lens date (toDateString) (fun d v -> fromDateString v)// d.SetDate(v); d)
-        divAttr[attr.``class`` "form-inline"; attr.style "margin-top:10px;"][
+        divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
             Doc.Input (attrs @ [attr.``type`` "date"; attr.valueDyn (dateLens.View)] ) dateLens |> formWrapper (label')
         ]  :> Doc
 

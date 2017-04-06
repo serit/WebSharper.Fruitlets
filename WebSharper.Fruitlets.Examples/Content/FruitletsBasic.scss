@@ -1,0 +1,121 @@
+$button-color-map : (
+    save: mediumseagreen,
+    create: blue,
+    delete: red,
+    cancel: #aaa,
+    form-add: green,
+    form-remove: red
+);
+
+.fruit-{
+    &btn{
+        
+        color:white;
+        
+        @each $button-type, $color in $button-color-map{
+            
+            &.fruit-btn-#{$button-type}{            
+                background-color: $color;
+            }
+        }
+                
+    }
+    
+    &form{
+        &-select{
+            
+            &-option{
+                
+            }
+            
+        }
+        
+        &-control{}
+        &-group{}
+        &-input-group{
+            
+            &-btn{}
+        }
+        
+        &-checkbox{
+            
+        }
+        
+        &-timepicker, &-datepicker{
+            
+            margin-top:10px;
+        }
+        
+    }
+    
+    &modal{
+        
+        .fruit-modal-{
+            &header{ }
+            &content{ }
+            &body{ }
+            &footer{ }
+            
+            &close{ }
+        }
+        
+    }
+    
+    &table{
+        
+        &-wrapper{
+            
+        }
+        
+        .fruit-{
+            
+            &table-head{
+                .fruit-table-head-row{}
+                
+            }
+            
+            &table-body{
+                .fruit-table-body-row{}
+                
+            }
+               
+            &edit-btn-column{
+                
+            }
+            
+            &active-row{
+                background-color: #d9edf7;
+                
+            }
+            
+        }
+    }
+    
+    &pagination{
+        
+        &-position-down{
+            
+            margin-top: 0;
+        }
+        
+        .fruit-page{}
+        .fruit-page-item{}
+        .fruit-page-link{}
+        
+    }
+    
+    &nav{
+        
+        &-tabs{}
+        
+    }
+    
+    &tab{
+        &-content{}
+        &-pane{}
+        
+    }
+    
+    
+    
+}

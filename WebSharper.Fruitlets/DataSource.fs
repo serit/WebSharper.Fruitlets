@@ -9,6 +9,7 @@ open WebSharper.UI.Next.Html
 [<JavaScript>]
 module DataSource =
 
+
     type ApiCrud<'U,'T> when 'U : equality =
         {
             mutable CreateFunc: string option
@@ -16,24 +17,28 @@ module DataSource =
             mutable UpdateFunc: ('T -> string) option
             mutable DeleteFunc: ('T -> string) option
             mutable GetFunc: ('U -> string) option
-
+            ErrorStatus: Var<string>
         }
 
     type RpcCrud<'U,'T> when 'U : equality =
         {
-            mutable CreateFunc: (unit -> Async<'T>) option
-            mutable ReadFunc: (unit -> Async<array<'T>>) option
+            mutable CreateFunc: (unit -> Async<Result.Result<'T,string>>) option
+            mutable ReadFunc: (unit -> Async<'T []>) option
             mutable UpdateFunc: ('T -> Async<Result.Result<'T,string>>) option
-            mutable DeleteFunc: ('T -> Async<bool>) option
-
+            mutable DeleteFunc: ('T -> Async<Result.Result<'T,string>>) option //('T -> Async<bool>) option
+            ErrorStatus: Var<string>
         }
         member this.Create (currentItem: Var<'T option>) (model : ListModel<'U,'T>) =
             match this.CreateFunc with
             | Some cf ->
                 async {
                     let! result = cf ()
-                    currentItem.Value <- Some result
-                }|> Async.Start
+                    match result with
+                    | Result.Success r -> currentItem.Value <- Some r
+                    | Result.Failure msg -> 
+                        Console.Log msg
+                        this.ErrorStatus.Value <- msg
+                } |> Async.Start
             | None -> ()
         member this.Read (model : ListModel<'U,'T>) =
             match this.ReadFunc with
@@ -50,21 +55,36 @@ module DataSource =
                     let! result = uf item
                     match result with
                     | Result.Success data ->
-                            if model.ContainsKey (idFunc data)
-                            then model.UpdateBy (fun t -> Some item) (idFunc data)
-                            else model.Add data
-                    | Result.Failure msg -> Console.Log msg
+                        if model.ContainsKey (idFunc data)
+                        then model.UpdateBy (fun t -> Some item) (idFunc data)
+                        else model.Add data
+                    | Result.Failure msg -> 
+                        Console.Log msg
+                        this.ErrorStatus.Value <- msg
+
                     // todo: if false, there should be an error somewhere
-                }|> Async.Start
+                } |> Async.Start
             | None -> ()
+//        member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
+//            match this.DeleteFunc with
+//            | Some df ->
+//                async {
+//                    let! result = df item
+//                    if result
+//                    then model.RemoveByKey (idFunc item)
+//                }|> Async.Start
+//            | None -> ()
         member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
             match this.DeleteFunc with
             | Some df ->
                 async {
                     let! result = df item
-                    if result
-                    then model.RemoveByKey (idFunc item)
-                }|> Async.Start
+                    match result with
+                    | Result.Success _ -> model.RemoveByKey (idFunc item)
+                    | Result.Failure msg ->
+                        Console.Log msg
+                        this.ErrorStatus.Value <- msg
+                } |> Async.Start
             | None -> ()
         static member empty =
             {
@@ -72,6 +92,7 @@ module DataSource =
                 ReadFunc = None
                 UpdateFunc = None
                 DeleteFunc = None
+                ErrorStatus = Var.Create ""
             }
         static member Init (createFunction,readFunction,updateFunction,deleteFunction) =
             {
@@ -79,6 +100,7 @@ module DataSource =
                 ReadFunc = readFunction
                 UpdateFunc = updateFunction
                 DeleteFunc = deleteFunction
+                ErrorStatus = Var.Create ""
             }
 
     type SynchCrud<'U,'T> when 'U : equality =
@@ -87,6 +109,7 @@ module DataSource =
             mutable ReadFunc: (unit -> array<'T>) option
             mutable UpdateFunc: ('T -> Result.Result<'T,string>) option
             mutable DeleteFunc: ('T -> bool) option
+            ErrorStatus: Var<string>
         }
         member this.Create (currentItem: Var<'T option>) (model : ListModel<'U,'T>) =
             match this.CreateFunc with
@@ -108,14 +131,12 @@ module DataSource =
                         then model.UpdateBy (fun t -> Some item) (idFunc data)
                         else model.Add data
                 | Result.Failure msg -> Console.Log msg
-                // todo: if false, there should be an error somewhere
             | None -> ()
         member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
             match this.DeleteFunc with
             | Some df ->
                 let result = df item
-                if result
-                then model.RemoveByKey (idFunc item)
+                if result then model.RemoveByKey (idFunc item)
             | None -> ()
         static member empty =
             {
@@ -124,6 +145,7 @@ module DataSource =
                 UpdateFunc = None
                 DeleteFunc = None
                 //GetFunc = None
+                ErrorStatus = Var.Create ""
             }
 
         static member Init (createFunction,readFunction,updateFunction,deleteFunction) =
@@ -133,6 +155,7 @@ module DataSource =
                 UpdateFunc = updateFunction
                 DeleteFunc = deleteFunction
                 //GetFunc = getFunction
+                ErrorStatus = Var.Create ""
             }
 
 
@@ -161,7 +184,9 @@ module DataSource =
             match this.CrudFunctions with
             | Rpc functions ->
                 functions.Read this.Model
-            | _ -> ()
+            | Synchronous functions ->
+                functions.Read this.Model
+            //| _ -> ()
         member this.Update (item: 'T) =
             match this.CrudFunctions with
             | Rpc functions ->

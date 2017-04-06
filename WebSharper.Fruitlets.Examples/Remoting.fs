@@ -25,8 +25,7 @@ module Server =
     let TableConstructor (data: seq<'T>) (T: System.Type) (idFunc: 'T -> 'U) =
 //        try
             let Id = (typeof<'T>).Name
-            let fields =
-                retrieve T
+            let fields = retrieve T
             let columns =
                 fields
                 |> Array.map ( fun pi ->
