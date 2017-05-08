@@ -7,6 +7,11 @@ paket.lock
 WebSharper*.js
 */Scripts
 
+*.scssc
+*.css.map
+WebSharper.Fruitlets.Tests.Canopy/
+WebSharper.Fruitlets.Tests.FsCheck/
+
 # User-specific files
 *.suo
 *.user
