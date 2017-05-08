@@ -11,59 +11,88 @@ open WebSharper.UI.Next.Html
 module Form =
     [<Core.Attributes.Inline "$this.options[$this.selectedIndex].value">]
     let private getSelected this = X<string>
+    [<Core.Attributes.Inline "$this.selectedIndex">]
+    let private selectedIndex this = X<int>
     
-    let private Select' attrs (options: Var<Map<int,string>>) (current: int) (targetLens:IRef<int option>) =
-        Doc.BindView( fun (map : Map<int,string>) ->
+    let private Select' attrs (options: Var<Map<int,string>>) (targetLens:IRef<int option>) (datatype: IRef<'T option>) =
+        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
+        Doc.BindView( fun ((map : Map<int,string>), (target: int option)) ->
+            let mapList = Map.toList map
+            let current =
+                match target with
+                | Some value -> value
+                | _ -> -1
             selectAttr
                 ([
                     attr.``class`` "fruit-form-select"
-                    on.change (fun el _ ->
-                        targetLens.Set << Some << int <| getSelected el)
+                    on.change (fun el _ -> targetLens.Set << Some << int <| getSelected el)
+                    on.afterRender (fun el ->
+                        try
+                            // if an item is loaded and there exists a list, but the value selected is not the same as the target, then select something in the list and update the item accordingly  
+                            if selectedIndex el > -1 then
+                                match (datatype.Value, getSelected el, List.tryHead mapList) with
+                                | Some _, selectedValue, Some (key, _) when int selectedValue <> current -> targetLens.Set <| Some key
+                                | _ -> ()
+                        with
+                            | exn -> Console.Log exn
+                        )
                     ] @ attrs )
                 (
-
-                    [for item in map do
-                        yield
-                            Doc.Element
-                                "option"
-                                [
-                                    attr.``class`` "fruit-form-select-option"
-                                    attr.value <| string item.Key
-                                    (if current = item.Key
-                                    then
-                                        attr.selected "selected"
-                                    else
-                                        Attr.Empty)
-                                ] [text item.Value] :> Doc
-
-                    ]) :> Doc
-        ) options.View
-    let private SelectWithString' attrs (options: Var<Map<string,string>>) (current: string) (targetLens:IRef<string option>) =
-        Doc.BindView( fun (map : Map<string,string>) ->
+                    mapList
+                    |> List.map ( fun (key, value) ->
+                        Doc.Element
+                            "option"
+                            [
+                                attr.``class`` "fruit-form-select-option"
+                                attr.value <| string key
+                                (if current = key
+                                then attr.selected "selected"
+                                else
+                                    Attr.Empty)
+                            ] [text value] :> Doc
+                        )
+                ) :> Doc
+        ) detectChangeInOptionsAndItem
+    let private SelectWithString' attrs (options: Var<Map<string,string>>) (targetLens:IRef<string option>) (datatype: IRef<'T option>)  =
+        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
+        Doc.BindView( fun ((map : Map<string,string>), (target: string option)) ->
+            let mapList = Map.toList map
+            let current =
+                match target with
+                | Some value -> value
+                | None -> "-"
             selectAttr
                 ([
                     attr.``class`` "fruit-form-select"
-                    on.change (fun el _ ->
-                        targetLens.Set << Some <| getSelected el)
+                    on.change (fun el _ -> targetLens.Set << Some <| getSelected el)
+                    on.afterRender (fun el ->
+                        try     
+                            // if an item is loaded and there exists a list, but the value selected is not the same as the target, then select something in the list and update the item accordingly   
+                            if selectedIndex el > -1 then
+                                match (datatype.Value, getSelected el, List.tryHead mapList) with
+                                | Some _, selectedValue, Some (key, _) when selectedValue <> current -> targetLens.Set <| Some key
+                                | _ -> ()
+                        with
+                            | exn -> Console.Log exn
+                        )
                     ] @ attrs )
                 (
+                    mapList
+                    |> List.map ( fun (key, value) ->
+                        Doc.Element
+                            "option"
+                            [
+                                attr.``class`` "fruit-form-select-option"
+                                attr.value key
+                                (if current = key
+                                then
+                                    attr.selected "selected"
+                                else
+                                    Attr.Empty)
+                            ] [text value] :> Doc
 
-                    [for item in map do
-                        yield
-                            Doc.Element
-                                "option"
-                                [
-                                    attr.``class`` "fruit-form-select-option"
-                                    attr.value item.Key
-                                    (if current = item.Key
-                                    then
-                                        attr.selected "selected"
-                                    else
-                                        Attr.Empty)
-                                ] [text item.Value] :> Doc
-
-                    ]) :> Doc
-        ) options.View
+                    )) :> Doc
+        ) detectChangeInOptionsAndItem
 
     let private SomeOrDefault getter def = function
         | Some t' -> getter t'
@@ -208,8 +237,9 @@ module Form =
 
             let optionToValueGetter = (fun t -> (field.Getter t))
             fun (t': Var<'DataType option>) ->
+                let current = (match t'.Value with |Some v -> field.OptionToDefault 0 (getter v) | None -> 0 )
                 let Select'' attrs (selectLens: IRef<int option>) =
-                    Select' attrs options (match t'.Value with |Some v -> field.OptionToDefault 0 (getter v) | None -> 0 ) selectLens
+                    Select' attrs options selectLens t'
                 let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
                 let inputField = Select'' field.defaultAttrs sGeneric // inputType this.defaultAttrs sGeneric
                 field.Show inputField t' (field.OptionToDefault 0)
@@ -327,13 +357,15 @@ module Form =
                     OptionalInputType<'DataType,System.DateTime>.DateField label' (OptionDateTimeToDate << getter) setter t'
                 | Select (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    //let current = (match t with | Some t' -> getter t' | None -> 0)
                     Doc.BindView( fun t ->
-                        Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s |> this.formWrapper label'
+                        Select' attrs options s t' |> this.formWrapper label' 
                     ) t'.View
                 | SelectWithString (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    // let current = (match t with | Some t' -> getter t' | None -> "")
                     Doc.BindView( fun t ->
-                        SelectWithString' attrs options (match t with | Some t' -> getter t' | None -> "") s |> this.formWrapper label'
+                        SelectWithString' attrs options s t' |> this.formWrapper label'
                     ) t'.View
                 | SelectOption (getter, setter, options) ->
                     OptionalInputType<'DataType,float>.SelectField label' getter setter options t'
