@@ -1,5 +1,6 @@
 # WebSharper.Fruitlets
 
+
 Library of UI components, built on WebSharper and UI.Next.
 
 The components depend on [BootStrap](http://getbootstrap.com/) and [Font Awesome](http://fontawesome.io/), 
@@ -11,6 +12,10 @@ so remember to include the following in your header.
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />   
 ```
 
+## Versions
+Current version is 0.2.6
+
+## Components
 This library is built with an emphasis on data management and is focused on generating layouts that integrate CRUD operations on existing datastructures.
 
 ## Table
