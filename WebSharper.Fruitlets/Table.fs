@@ -269,7 +269,7 @@ module Table =
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.DateTime << SomeOrDefaultSort <| get t )
                 EditField = Some (Form.DateOption (get, set)) }
-
+                
         /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType), optionMap : Var<Map<int,string>>) =
             let findInMap (map : Map<int,string>) key =
@@ -281,6 +281,17 @@ module Table =
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
                 EditField = Some (Form.Select (get, set, optionMap)) }
+        /// This column can be used to represent and change foreign keys
+        static member EditSelectColumn (name, get : ('DataType -> string), set : ('DataType -> string -> 'DataType), optionMap : Var<Map<string,string>>) =
+            let findInMap (map : Map<string,string>) key =
+                    match map.TryFind key with
+                    | Some v -> v
+                    | None -> ""
+            { Column<'DataType>.empty with
+                Name = name
+                DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
+                SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
+                EditField = Some (Form.SelectWithString (get, set, optionMap)) }
 
         /// This column can be used to represent and change Nullable foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int option), set : ('DataType -> int option -> 'DataType), optionMap : Var<Map<int,string>>) =
