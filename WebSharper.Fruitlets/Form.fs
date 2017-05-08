@@ -11,7 +11,7 @@ open WebSharper.UI.Next.Html
 module Form =
     [<Core.Attributes.Inline "$this.options[$this.selectedIndex].value">]
     let private getSelected this = X<string>
-
+    
     let private Select' attrs (options: Var<Map<int,string>>) (current: int) (targetLens:IRef<int option>) =
         Doc.BindView( fun (map : Map<int,string>) ->
             selectAttr
@@ -29,6 +29,32 @@ module Form =
                                 [
                                     attr.``class`` "fruit-form-select-option"
                                     attr.value <| string item.Key
+                                    (if current = item.Key
+                                    then
+                                        attr.selected "selected"
+                                    else
+                                        Attr.Empty)
+                                ] [text item.Value] :> Doc
+
+                    ]) :> Doc
+        ) options.View
+    let private SelectWithString' attrs (options: Var<Map<string,string>>) (current: string) (targetLens:IRef<string option>) =
+        Doc.BindView( fun (map : Map<string,string>) ->
+            selectAttr
+                ([
+                    attr.``class`` "fruit-form-select"
+                    on.change (fun el _ ->
+                        targetLens.Set << Some <| getSelected el)
+                    ] @ attrs )
+                (
+
+                    [for item in map do
+                        yield
+                            Doc.Element
+                                "option"
+                                [
+                                    attr.``class`` "fruit-form-select-option"
+                                    attr.value item.Key
                                     (if current = item.Key
                                     then
                                         attr.selected "selected"
@@ -181,7 +207,7 @@ module Form =
             let field = {Label = label'; Getter = getter; Setter = setter}
 
             let optionToValueGetter = (fun t -> (field.Getter t))
-            fun (t': Var<'Datatype option>) ->
+            fun (t': Var<'DataType option>) ->
                 let Select'' attrs (selectLens: IRef<int option>) =
                     Select' attrs options (match t'.Value with |Some v -> field.OptionToDefault 0 (getter v) | None -> 0 ) selectLens
                 let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
@@ -192,6 +218,7 @@ module Form =
     type InputType<'DataType> =
         | Disabled of ('DataType -> Doc list)
         | String of (('DataType -> string) * ('DataType -> string -> 'DataType))
+        | GenericString of (string * ('DataType -> string) * ('DataType -> string -> 'DataType))
         | Text of (('DataType -> string) * ('DataType -> string -> 'DataType))
         | Int of (('DataType -> int) * ('DataType -> int -> 'DataType))
         | Float of (('DataType -> float) * ('DataType -> float -> 'DataType))
@@ -199,6 +226,7 @@ module Form =
         | Date of (('DataType -> System.DateTime) * ('DataType -> System.DateTime -> 'DataType))
         | Time of (('DataType -> System.TimeSpan) * ('DataType -> System.TimeSpan -> 'DataType))
         | Select of (('DataType -> int) * ('DataType -> int -> 'DataType) * Var<Map<int,string>>)
+        | SelectWithString of (('DataType -> string) * ('DataType -> string -> 'DataType) * Var<Map<string,string>>)
         | StringOption of (('DataType -> string option) * ('DataType -> string option -> 'DataType))
         | TextOption of (('DataType -> string option) * ('DataType -> string option -> 'DataType))
         | IntOption of (('DataType -> int option) * ('DataType -> int option -> 'DataType))
@@ -235,10 +263,13 @@ module Form =
                         let s = SomeOrDefault getter List.Empty t''
                         divAttr (attr.disabled "disabled" :: attrs) s |> formWrapper
                     ) t'.View
-
+                    
                 | String (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
                     Doc.Input attrs s |> formWrapper
+                | GenericString (typeAttr,getter, setter) ->
+                    let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
+                    Doc.Input (attrs @ [attr.``type`` typeAttr] ) s |> formWrapper
                 | StringOption (getter, setter) ->
                     OptionalInputType<'DataType,string>.StringField label' getter setter t'
                 | StringSeq (getter, setter) ->
@@ -299,6 +330,11 @@ module Form =
                     Doc.BindView( fun t ->
                         Select' attrs options (match t with | Some t' -> getter t' | None -> 0) s |> this.formWrapper label'
                     ) t'.View
+                | SelectWithString (getter, setter, options) ->
+                    let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    Doc.BindView( fun t ->
+                        SelectWithString' attrs options (match t with | Some t' -> getter t' | None -> "") s |> this.formWrapper label'
+                    ) t'.View
                 | SelectOption (getter, setter, options) ->
                     OptionalInputType<'DataType,float>.SelectField label' getter setter options t'
         member this.show (label') =
@@ -344,6 +380,11 @@ module Form =
                 Input = input'
                 HasError = false
             }
+            
+    type FormSubmitFunction<'DataType> =
+        | Sync of ('DataType option -> Dom.Element -> Dom.MouseEvent -> bool)
+        | Async of ('DataType option -> Dom.Element -> Dom.MouseEvent -> Async<Result.Result<bool,string>>)
+
     type Form<'DataType> =
         {
             // incase multiple forms are defined on the same page
@@ -353,7 +394,7 @@ module Form =
             SubmitSuccess: string
             SubmitFailure: string
             // todo: OnSubmit should have a variant where the result is asynchronous
-            OnSubmit: ('DataType option -> Dom.Element -> Dom.MouseEvent -> bool)
+            OnSubmit: FormSubmitFunction<'DataType>
         }
         member this.show =
             fun (t : Var<'DataType option>) ->
@@ -448,11 +489,27 @@ module Form =
                                         |> List.isEmpty
                                     then
                                         (
-                                            if this.OnSubmit t' el ev then
-                                                errorMsg.Value <- []
-                                                successMsg.Value <- this.SubmitSuccess
-                                            else
-                                                errorMsg.Value <- [this.SubmitFailure])
+                                            match this.OnSubmit with
+                                            | Sync onSubmit ->
+                                            
+                                                if onSubmit t' el ev then
+                                                    errorMsg.Value <- []
+                                                    successMsg.Value <- this.SubmitSuccess
+                                                else
+                                                    errorMsg.Value <- [this.SubmitFailure]
+                                            | Async onSubmit ->
+                                                async{
+                                                    let! result = onSubmit t' el ev
+                                                    match result with
+                                                    | Result.Success true ->
+                                                        errorMsg.Value <- []
+                                                        successMsg.Value <- this.SubmitSuccess
+                                                    | Result.Success false ->
+                                                        errorMsg.Value <- [this.SubmitFailure]
+                                                    | Result.Failure msg ->
+                                                        errorMsg.Value <- [msg]
+                                                } |> Async.Start
+                                            )
                                     else ()
 
                                 | None -> ()
