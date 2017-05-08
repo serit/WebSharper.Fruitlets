@@ -13,7 +13,11 @@ so remember to include the following in your header.
 ```
 
 ## Versions
-Current version is 0.2.6
+Current version is 0.2.7
+
+### 0.2.7
+
+* Fixed some issues with synchronization of dynamic dropdown lists
 
 ## Components
 This library is built with an emphasis on data management and is focused on generating layouts that integrate CRUD operations on existing datastructures.
