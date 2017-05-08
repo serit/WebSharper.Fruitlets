@@ -2,14 +2,14 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.2.2</version>
+    <version>0.2.6</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>More class attributes</releaseNotes>
+    <releaseNotes>Added a select option with a Map string source</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>
