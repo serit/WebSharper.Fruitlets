@@ -36,7 +36,6 @@ module Tab =
                 attr.id this.Id
                 attr.``class`` cls
                 ] [
-                    //h3 [text this.Title]
                     this.Content
                 ] :> Doc
 
