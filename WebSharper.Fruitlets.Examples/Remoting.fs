@@ -126,3 +126,13 @@ module Server =
         async {
             return true
         }
+
+    [<Rpc>]
+    let AskTheServer (hobbies: string list) speed : Async<Fruitlets.Result.Result<bool,string>>  =        
+        async {
+            do! Async.Sleep speed
+            if List.isEmpty hobbies then
+                return Fruitlets.Result.Success false
+            else
+                return Fruitlets.Result.Success true
+        }
