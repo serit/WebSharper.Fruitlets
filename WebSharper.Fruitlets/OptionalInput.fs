@@ -61,36 +61,56 @@ module OptionalInput =
                 let sGeneric = Var.Lens t' (SomeOrDefault optionToValueGetter defaultValue) (fun t s' -> Some <| this.Setter t.Value (Some s'))
                 let inputField = inputType this.defaultAttrs sGeneric
                 this.Show inputField t' (this.OptionToDefault defaultValue)
-        static member StringField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.Input
-        static member TextField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.InputArea
-        static member IntField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0 Doc.IntInputUnchecked
-        static member FloatField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0. Doc.FloatInputUnchecked
-        static member TimeField label' getter setter =
-            let TimeInput attrs timeLens = Time.Timepicker timeLens attrs label'
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0L TimeInput
-        static member DateField label' getter setter =
-            let DateToDateTime (t : Date option) =
-                match t with
-                | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString())
-                | None -> None
-            let setter' = (fun (t: 'DataType) s -> setter t <| DateToDateTime s)
-            let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs label'
-            {Label = label'; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
-        /// Under construction: Logic of current value should be fixed: Reset when t' is updated
-        static member SelectField label' (getter: 'DataType -> int option) setter options =
 
-            let field = {Label = label'; Getter = getter; Setter = setter}
+//    type GenericOptionalInputType<'DataType, 'ValueType> =
+//        {
+//            InputType: OptionalInputType<'DataType, 'ValueType>
+//            Default: 'ValueType
+//            DocElement: Attr list -> IRef<'ValueType> -> Elt
+//        }
+//        member this.show() =
+//            let optionToValueGetter = (fun t -> (this.InputType.OptionToDefault this.Default << this.InputType.Getter <| t))
+//            fun t' ->
+//                let sGeneric = Var.Lens t' (SomeOrDefault optionToValueGetter this.Default) (fun t s' -> Some <| this.InputType.Setter t.Value (Some s'))
+//                let inputField = this.DocElement this.InputType.defaultAttrs sGeneric
+//                this.InputType.Show inputField t' (this.InputType.OptionToDefault this.Default)
+//
+//        static member Create def element label' getter setter  =
+//            { 
+//                InputType = {Label = label'; Getter = getter; Setter = setter}
+//                Default = def
+//                DocElement = element
+//            }
 
-            let optionToValueGetter = (fun t -> (field.Getter t))
-            fun (t': Var<'DataType option>) ->
-                let current = (match t'.Value with |Some v -> field.OptionToDefault 0 (getter v) | None -> 0 )
-                let Select'' attrs (selectLens: IRef<int option>) =
-                    //Select' attrs options selectLens t'
-                    Select.SelectInt attrs options selectLens t'
-                let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
-                let inputField = Select'' field.defaultAttrs sGeneric // inputType this.defaultAttrs sGeneric
-                field.Show inputField t' (field.OptionToDefault 0)
+
+    let StringField label' getter setter =
+        {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.Input
+    let TextField label' getter setter =
+        {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.InputArea
+    let IntField label' getter setter =
+        {Label = label'; Getter = getter; Setter = setter}.GenericField 0 Doc.IntInputUnchecked
+    let FloatField label' getter setter =
+        {Label = label'; Getter = getter; Setter = setter}.GenericField 0. Doc.FloatInputUnchecked
+    let TimeField label' getter setter =
+        let TimeInput attrs timeLens = Time.Timepicker timeLens attrs label'
+        {Label = label'; Getter = getter; Setter = setter}.GenericField 0L TimeInput
+    let DateField label' getter setter =
+        let DateToDateTime (t : Date option) =
+            match t with
+            | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString())
+            | None -> None
+        let setter' = (fun (t: 'DataType) s -> setter t <| DateToDateTime s)
+        let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs label'
+        {Label = label'; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
+    /// Under construction: Logic of current value should be fixed: Reset when t' is updated: partially done
+    let SelectField label' (getter: 'DataType -> int option) setter options =
+
+        let field = {Label = label'; Getter = getter; Setter = setter}
+
+        let optionToValueGetter = (fun t -> (field.Getter t))
+        fun (t': Var<'DataType option>) ->
+            let Select'' attrs (selectLens: IRef<int option>) =
+                Select.SelectInt attrs options selectLens t'
+            let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
+            let inputField = Select'' field.defaultAttrs sGeneric
+            field.Show inputField t' (field.OptionToDefault 0)

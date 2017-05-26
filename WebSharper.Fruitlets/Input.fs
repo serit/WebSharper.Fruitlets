@@ -77,24 +77,24 @@ module Input =
                     let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
                     Doc.Input (attrs @ [attr.``type`` typeAttr] ) s |> formWrapper
                 | StringOption (getter, setter) ->
-                    OptionalInputType<'DataType,string>.StringField label' getter setter t'
+                    OptionalInput.StringField label' getter setter t'
                 | StringSeq (getter, setter) ->
                     MultipleInput.MultipleInputType<'DataType,string>.StringSeq label' getter setter t'
                 | Text (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
                     Doc.InputArea attrs s |> formWrapper
                 | TextOption (getter, setter) ->
-                    OptionalInputType<'DataType,string>.TextField label' getter setter t'
+                    OptionalInput.TextField label' getter setter t'
                 | Int (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter 0) (SomeSetter setter)
                     Doc.IntInputUnchecked attrs s |> formWrapper
                 | IntOption (getter, setter) ->
-                    OptionalInputType<'DataType,int>.IntField label' getter setter t'
+                    OptionalInput.IntField label' getter setter t'
                 | Float (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter 0.) (SomeSetter setter)
                     Doc.FloatInputUnchecked attrs s |> formWrapper
                 | FloatOption (getter, setter) ->
-                    OptionalInputType<'DataType,float>.FloatField label' getter setter t'
+                    OptionalInput.FloatField label' getter setter t'
                 | Bool (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter false) (SomeSetter setter)
                     divAttr[ attr.``class`` "checkbox"][
@@ -118,7 +118,7 @@ module Input =
                         | Some s' -> Some (System.TimeSpan.FromTicks s')
                         | None -> None
                         |> setter t
-                    OptionalInputType<'DataType,System.TimeSpan>.TimeField label' (OptionTimeToTicks << getter) SetOptionTicksToTime t'
+                    OptionalInput.TimeField label' (OptionTimeToTicks << getter) SetOptionTicksToTime t'
 
                 | Date (getter, setter) ->
                     let DateTimeToDate (t : System.DateTime) = new Date(t.Year,t.Month - 1, t.Day)
@@ -130,7 +130,7 @@ module Input =
                         match t with
                         | Some t' -> Some <| new Date(t'.Year, t'.Month - 1, t'.Day)
                         | None -> None
-                    OptionalInputType<'DataType,System.DateTime>.DateField label' (OptionDateTimeToDate << getter) setter t'
+                    OptionalInput.DateField label' (OptionDateTimeToDate << getter) setter t'
                 | Select (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
                     Doc.BindView( fun t ->
@@ -142,7 +142,7 @@ module Input =
                         Select.SelectString attrs options s t' |> this.formWrapper label'
                     ) t'.View
                 | SelectOption (getter, setter, options) ->
-                    OptionalInputType<'DataType,float>.SelectField label' getter setter options t'
+                    OptionalInput.SelectField label' getter setter options t'
         member this.show (label') =
             let attrs =
                 [
