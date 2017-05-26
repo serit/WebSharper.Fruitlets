@@ -9,380 +9,40 @@ open WebSharper.UI.Next.Html
 // Bootstrap formfields
 [<JavaScript>]
 module Form =
-    [<Core.Attributes.Inline "$this.options[$this.selectedIndex].value">]
-    let private getSelected this = X<string>
-    [<Core.Attributes.Inline "$this.selectedIndex">]
-    let private selectedIndex this = X<int>
+
+    open Input
     
-    let private Select' attrs (options: Var<Map<int,string>>) (targetLens:IRef<int option>) (datatype: IRef<'T option>) =
-        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
-        Doc.BindView( fun ((map : Map<int,string>), (target: int option)) ->
-            let mapList = Map.toList map
-            let current =
-                match target with
-                | Some value -> value
-                | _ -> -1
-            selectAttr
-                ([
-                    attr.``class`` "fruit-form-select"
-                    on.change (fun el _ -> targetLens.Set << Some << int <| getSelected el)
-                    on.afterRender (fun el ->
-                        try
-                            // if an item is loaded and there exists a list, but the value selected is not the same as the target, then select something in the list and update the item accordingly  
-                            if selectedIndex el > -1 then
-                                match (datatype.Value, getSelected el, List.tryHead mapList) with
-                                | Some _, selectedValue, Some (key, _) when int selectedValue <> current -> targetLens.Set <| Some key
-                                | _ -> ()
-                        with
-                            | exn -> Console.Log exn
-                        )
-                    ] @ attrs )
-                (
-                    mapList
-                    |> List.map ( fun (key, value) ->
-                        Doc.Element
-                            "option"
-                            [
-                                attr.``class`` "fruit-form-select-option"
-                                attr.value <| string key
-                                (if current = key
-                                then attr.selected "selected"
-                                else
-                                    Attr.Empty)
-                            ] [text value] :> Doc
-                        )
-                ) :> Doc
-        ) detectChangeInOptionsAndItem
-    let private SelectWithString' attrs (options: Var<Map<string,string>>) (targetLens:IRef<string option>) (datatype: IRef<'T option>)  =
-        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
-        Doc.BindView( fun ((map : Map<string,string>), (target: string option)) ->
-            let mapList = Map.toList map
-            let current =
-                match target with
-                | Some value -> value
-                | None -> "-"
-            selectAttr
-                ([
-                    attr.``class`` "fruit-form-select"
-                    on.change (fun el _ -> targetLens.Set << Some <| getSelected el)
-                    on.afterRender (fun el ->
-                        try     
-                            // if an item is loaded and there exists a list, but the value selected is not the same as the target, then select something in the list and update the item accordingly   
-                            if selectedIndex el > -1 then
-                                match (datatype.Value, getSelected el, List.tryHead mapList) with
-                                | Some _, selectedValue, Some (key, _) when selectedValue <> current -> targetLens.Set <| Some key
-                                | _ -> ()
-                        with
-                            | exn -> Console.Log exn
-                        )
-                    ] @ attrs )
-                (
-                    mapList
-                    |> List.map ( fun (key, value) ->
-                        Doc.Element
-                            "option"
-                            [
-                                attr.``class`` "fruit-form-select-option"
-                                attr.value key
-                                (if current = key
-                                then
-                                    attr.selected "selected"
-                                else
-                                    Attr.Empty)
-                            ] [text value] :> Doc
-
-                    )) :> Doc
-        ) detectChangeInOptionsAndItem
-
-    let private SomeOrDefault getter def = function
-        | Some t' -> getter t'
-        | None -> def
-    let private SomeSetter setter (t: 'DataType option) s =
-        Some <| setter t.Value s
-    let private OptionToBool (t : 'T option) = t.IsSome
-
-    let private wrapSeq (vls: IRef<seq<'T>>) : IRef<seq<Var<'T>>> =
-
-        let getter (ls : seq<'T>) : seq<Var<'T>> =
-            Seq.map (fun l ->
-                Var.Create l
-            ) ls
-
-        let setter (ls : seq<'T>) (newls : seq<Var<'T>>) : seq<'T> =
-            newls |> Seq.map (fun v -> v.Value)
-
-        let varSeq' = Var.Lens vls getter setter
-
-        //varSeq'.View |> View.Sequence |> View.Sink ()
-
-        varSeq'
-
-    type MultipleInputType<'DataType, 'ValueType> =
-        {
-            Label: string
-            Getter: 'DataType -> 'ValueType seq
-            Setter: 'DataType -> 'ValueType seq -> 'DataType
-
-        }
-        member this.formWrapper content =
-            divAttr[ attr.``class`` "form-group fruit-form-group"][
-                labelAttr[attr.``for`` this.Label][text this.Label]
-                content
-            ] :> Doc
-        member this.FieldWrapperWithAdd content =
-            divAttr[ attr.``class`` "input-group fruit-form-input-group"][
-                content
-                spanAttr[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
-                    buttonAttr[attr.``class`` "btn btn-success btn-add fruit-btn fruit-btn-form-add"][
-                        iAttr[attr.``class`` "fa fa-plus"][]
-                    ]
-                ]
-            ] :> Doc
-        member this.FieldWrapperWithRemove content =
-            divAttr[ attr.``class`` "input-group fruit-form-input-group"][
-                content
-                spanAttr[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
-                    buttonAttr[attr.``class`` "btn btn-danger btn-remove fruit-btn-form-remove"][
-                        iAttr[attr.``class`` "fa fa-minus"][]
-                    ]
-                ]
-            ] :> Doc
-        static member StringSeq label' (getter : 'DataType -> string seq) setter =
-            let field = {Label = label'; Getter = getter; Setter = setter}
-            // many fields with (+ -) buttons
-            // also up/down
-            let attrs =
-                [
-                    attr.id label'
-                    attr.``class`` "form-control fruit-form-control"
-                ]
-            fun (t' : Var<'DataType option>) ->
-                let sList = Var.Lens t' (SomeOrDefault field.Getter Seq.empty) (SomeSetter field.Setter)
-                let wrapped = wrapSeq sList
-                Doc.BindView( fun vars ->
-                    vars
-                    |> Seq.map (fun s -> Doc.Input attrs s :> Doc)
-                    |> Doc.Concat
-                ) wrapped.View
-                |> field.formWrapper
-
-
-    type OptionalInputType<'DataType, 'ValueType> =
-        {
-            Label: string
-            Getter: 'DataType -> 'ValueType option
-            Setter: 'DataType -> 'ValueType option -> 'DataType
-        }
-        member this.formWrapper content =
-            divAttr[ attr.``class`` "form-group fruit-form-group"][
-                labelAttr[attr.``for`` this.Label][text this.Label]
-                content
-            ] :> Doc
-        member this.defaultAttrs =
-            [
-                attr.id this.Label
-                attr.``class`` "form-control fruit-form-control"
-            ]
-        member this.OptionToBool =
-            fun (t': Var<'DataType option>) optionToValue ->
-                let s = Var.Lens t' (SomeOrDefault this.Getter None) (fun t s -> Some <| this.Setter t.Value s)
-                Var.Lens t' (SomeOrDefault (OptionToBool << this.Getter) false) (fun t s' -> Some <| this.Setter t.Value (if s' then Some <| optionToValue s.Value else None))
-        member this.Show inputField =
-
-            let hideField (sBool : IRef<bool>) =
-                View.Map (function
-                    | true -> "display:inline-block"
-                    | false -> "display:none"
-                ) sBool.View
-            fun (t': Var<'DataType option>) optionToValue ->
-                let sBool = this.OptionToBool t' optionToValue
-
-                divAttr[attr.``class`` "form-inline fruit-form-inline"][
-                    Doc.CheckBox [attr.``class`` "fruit-form-checkbox"] sBool
-                    divAttr[attr.styleDyn <| hideField sBool][inputField]
-                ] |> this.formWrapper
-        // default: optionToValue defaultValue inputType
-        member __.OptionToDefault defaultValue = function
-            | Some s -> s
-            | None -> defaultValue
-        member this.GenericField defaultValue inputType =
-            let optionToValueGetter = (fun t -> (this.OptionToDefault defaultValue << this.Getter <| t))
-            fun t' ->
-                let sGeneric = Var.Lens t' (SomeOrDefault optionToValueGetter defaultValue) (fun t s' -> Some <| this.Setter t.Value (Some s'))
-                let inputField = inputType this.defaultAttrs sGeneric
-                this.Show inputField t' (this.OptionToDefault defaultValue)
-        static member StringField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.Input
-        static member TextField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.InputArea
-        static member IntField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0 Doc.IntInputUnchecked
-        static member FloatField label' getter setter =
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0. Doc.FloatInputUnchecked
-        static member TimeField label' getter setter =
-            let TimeInput attrs timeLens = Time.Timepicker timeLens attrs label'
-            {Label = label'; Getter = getter; Setter = setter}.GenericField 0L TimeInput
-        static member DateField label' getter setter =
-            let DateToDateTime (t : Date option) =
-                match t with
-                | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString())
-                | None -> None
-            let setter' = (fun (t: 'DataType) s -> setter t <| DateToDateTime s)
-            let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs label'
-            {Label = label'; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
-        /// Under construction: Logic of current value should be fixed: Reset when t' is updated
-        static member SelectField label' (getter: 'DataType -> int option) setter options =
-
-            let field = {Label = label'; Getter = getter; Setter = setter}
-
-            let optionToValueGetter = (fun t -> (field.Getter t))
-            fun (t': Var<'DataType option>) ->
-                let current = (match t'.Value with |Some v -> field.OptionToDefault 0 (getter v) | None -> 0 )
-                let Select'' attrs (selectLens: IRef<int option>) =
-                    Select' attrs options selectLens t'
-                let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
-                let inputField = Select'' field.defaultAttrs sGeneric // inputType this.defaultAttrs sGeneric
-                field.Show inputField t' (field.OptionToDefault 0)
-
-    /// InputType is a lens and should be used in a form that represents a Var<'DataType>
-    type InputType<'DataType> =
-        | Disabled of ('DataType -> Doc list)
-        | String of (('DataType -> string) * ('DataType -> string -> 'DataType))
-        | GenericString of (string * ('DataType -> string) * ('DataType -> string -> 'DataType))
-        | Text of (('DataType -> string) * ('DataType -> string -> 'DataType))
-        | Int of (('DataType -> int) * ('DataType -> int -> 'DataType))
-        | Float of (('DataType -> float) * ('DataType -> float -> 'DataType))
-        | Bool of (('DataType -> bool) * ('DataType -> bool -> 'DataType))
-        | Date of (('DataType -> System.DateTime) * ('DataType -> System.DateTime -> 'DataType))
-        | Time of (('DataType -> System.TimeSpan) * ('DataType -> System.TimeSpan -> 'DataType))
-        | Select of (('DataType -> int) * ('DataType -> int -> 'DataType) * Var<Map<int,string>>)
-        | SelectWithString of (('DataType -> string) * ('DataType -> string -> 'DataType) * Var<Map<string,string>>)
-        | StringOption of (('DataType -> string option) * ('DataType -> string option -> 'DataType))
-        | TextOption of (('DataType -> string option) * ('DataType -> string option -> 'DataType))
-        | IntOption of (('DataType -> int option) * ('DataType -> int option -> 'DataType))
-        | FloatOption of (('DataType -> float option) * ('DataType -> float option -> 'DataType))
-//        | BoolOption of (('DataType -> bool option) * ('DataType -> bool option -> 'DataType))
-        | DateOption of (('DataType -> System.DateTime option) * ('DataType -> System.DateTime option -> 'DataType))
-        | TimeOption of (('DataType -> System.TimeSpan option) * ('DataType -> System.TimeSpan option -> 'DataType))
-        | SelectOption of (('DataType -> int option) * ('DataType -> int option -> 'DataType) * Var<Map<int,string>>)
-        | StringSeq of (('DataType -> seq<string>) * ('DataType -> seq<string> -> 'DataType))
-        member this.formWrapper label' content =
-            divAttr[ attr.``class`` "form-group fruit-form-group"][
-                labelAttr[attr.``for`` label'][text label']
-                content
-            ] :> Doc
-        member this.errorFormWrapper label' content =
-            divAttr[ attr.``class`` "form-group has-error has-feedback fruit-form-group fruit-has-error fruit-has-feedback"][
-                labelAttr[attr.``for`` label'][text label']
-                content
-                spanAttr[attr.``class`` "glyphicon glyphicon-remove form-control-feedback"][]
-            ] :> Doc
-        member this.successFormWrapper label' content =
-            divAttr[ attr.``class`` "form-group has-success has-feedback fruit-form-group fruit-has-success fruit-has-feedback"][
-                labelAttr[attr.``for`` label'][text label']
-                content
-                spanAttr[attr.``class`` "glyphicon glyphicon-ok form-control-feedback"][]
-            ] :> Doc
-        member this.show (label' : string, attrs : Attr list, formWrapper) =
-            //let formWrapper = this.formWrapper label'
-            fun (t' : Var<'DataType option>) ->
-                match this with
-                | Disabled (getter) ->
-
-                    Doc.BindView ( fun t'' ->
-                        let s = SomeOrDefault getter List.Empty t''
-                        divAttr (attr.disabled "disabled" :: attrs) s |> formWrapper
-                    ) t'.View
-                    
-                | String (getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
-                    Doc.Input attrs s |> formWrapper
-                | GenericString (typeAttr,getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
-                    Doc.Input (attrs @ [attr.``type`` typeAttr] ) s |> formWrapper
-                | StringOption (getter, setter) ->
-                    OptionalInputType<'DataType,string>.StringField label' getter setter t'
-                | StringSeq (getter, setter) ->
-                    MultipleInputType<'DataType,string>.StringSeq label' getter setter t'
-                | Text (getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter "") (SomeSetter setter)
-                    Doc.InputArea attrs s |> formWrapper
-                | TextOption (getter, setter) ->
-                    OptionalInputType<'DataType,string>.TextField label' getter setter t'
-                | Int (getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter 0) (SomeSetter setter)
-                    Doc.IntInputUnchecked attrs s |> formWrapper
-                | IntOption (getter, setter) ->
-                    OptionalInputType<'DataType,int>.IntField label' getter setter t'
-                | Float (getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter 0.) (SomeSetter setter)
-                    Doc.FloatInputUnchecked attrs s |> formWrapper
-                | FloatOption (getter, setter) ->
-                    OptionalInputType<'DataType,float>.FloatField label' getter setter t'
-                | Bool (getter, setter) ->
-                    let s = Var.Lens t' (SomeOrDefault getter false) (SomeSetter setter)
-                    divAttr[ attr.``class`` "checkbox"][
-                        label[
-                            Doc.CheckBox [] s
-                            text label'
-                        ]
-                    ] :> Doc
-                | Time (getter, setter) ->
-                    let TimeToTicks (t: System.TimeSpan) = t.Ticks
-                    let SetTicksToTime t s = SomeSetter setter t (System.TimeSpan.FromTicks s)
-                    let timeLens = Var.Lens t' (SomeOrDefault (TimeToTicks << getter) 0L) SetTicksToTime //(SomeSetter setter)
-                    Time.Timepicker timeLens attrs label'
-                | TimeOption (getter, setter) ->
-                    let OptionTimeToTicks (t: System.TimeSpan option) =
-                        match t with
-                        |Some s -> Some s.Ticks
-                        |None -> None
-                    let SetOptionTicksToTime t s =
-                        match s with
-                        | Some s' -> Some (System.TimeSpan.FromTicks s')
-                        | None -> None
-                        |> setter t
-                    OptionalInputType<'DataType,System.TimeSpan>.TimeField label' (OptionTimeToTicks << getter) SetOptionTicksToTime t'
-
-                | Date (getter, setter) ->
-                    let DateTimeToDate (t : System.DateTime) = new Date(t.Year,t.Month - 1, t.Day)
-                    let DateToDateTime (t : Date) = System.DateTime.Parse(t.ToDateString())
-                    let s = Var.Lens t' (SomeOrDefault (DateTimeToDate << getter) (new Date())) (fun t s -> Some <| (setter t.Value <| DateToDateTime s))
-                    Time.Datepicker'' s attrs label'
-                | DateOption (getter, setter) ->
-                    let OptionDateTimeToDate (t : System.DateTime option) =
-                        match t with
-                        | Some t' -> Some <| new Date(t'.Year, t'.Month - 1, t'.Day)
-                        | None -> None
-                    OptionalInputType<'DataType,System.DateTime>.DateField label' (OptionDateTimeToDate << getter) setter t'
-                | Select (getter, setter, options) ->
-                    let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
-                    //let current = (match t with | Some t' -> getter t' | None -> 0)
-                    Doc.BindView( fun t ->
-                        Select' attrs options s t' |> this.formWrapper label' 
-                    ) t'.View
-                | SelectWithString (getter, setter, options) ->
-                    let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
-                    // let current = (match t with | Some t' -> getter t' | None -> "")
-                    Doc.BindView( fun t ->
-                        SelectWithString' attrs options s t' |> this.formWrapper label'
-                    ) t'.View
-                | SelectOption (getter, setter, options) ->
-                    OptionalInputType<'DataType,float>.SelectField label' getter setter options t'
-        member this.show (label') =
-            let attrs =
-                [
-                    attr.id label'
-                    attr.name label'
-                    attr.``class`` "form-control fruit-form-control"
-                ]
-            this.show(label', attrs, this.formWrapper label')
-
+    type ValidationFunction<'DataType> =
+        | Sync of ('DataType -> bool)
+        | Async of ('DataType -> Async<Result.Result<bool,string>>)
+        member this.validates (t: 'DataType) =
+            match this with
+            | Sync f -> Var.Create <| Some (f t)
+            | Async f -> 
+                let varBool = Var.Create <| None
+                async{
+                    let! b = f t
+                    match b with
+                    | Result.Success true -> varBool.Value <- Some true
+                    | _ -> varBool.Value <- Some false
+                } |> Async.Start
+                varBool
+            
+            
+    type ValidationError<'DataType> =
+        | Simple of string
+        | Sync of ('DataType -> string)
+        //| Async of ('DataType -> Async<Result.Result<string,string>>)
+        member this.Value t =
+            match this with
+            | Sync f -> f t 
+            | Simple str -> str
+    
     (* Field, FormField and Validation are used to generate forms with validation *)
     type Validation<'DataType> =
         {
-            ValidationFunction: 'DataType -> bool
-            OnError: string
+            ValidationFunction: ValidationFunction<'DataType> //'DataType -> bool
+            OnError: ValidationError<'DataType>
         }
 
     type FormField<'DataType> =
@@ -392,12 +52,25 @@ module Form =
             Input: InputType<'DataType>
             mutable HasError: bool
         }
-        member this.Prevalidate t =
+        member this.PrevalidateView t =            
+            let initialValidate = View.Const (Some true)
+            this.Validations 
+            |> List.map (fun v -> (v.ValidationFunction.validates t).View)
+            |> List.fold FormField<'DataType>.accumulatorViewMapBool initialValidate
+        member this.PrevalidateAndErrorView t =            
+            let initialValidate = View.Const (Some true)
+            this.Validations 
+            |> List.map (fun v -> (v.ValidationFunction.validates t).View, v.OnError)
+
+        member this.PrevalidateNecessary =  
             not <| List.isEmpty this.Validations
-            &&
-            this.Validations
-            |> List.filter (fun v -> not <| v.ValidationFunction t)
-            |> List.isEmpty
+        static member accumulatorViewMapBool (acc: View<bool option>) (t: View<bool option>) =
+            View.Map2 (fun acc' t' -> 
+                match (acc', t') with
+                | Some bAcc, Some b -> Some (b && bAcc)
+                | Some _, None -> None
+                | None, _ -> None
+                ) acc t
         static member empty =
             {
                 Label = ""
@@ -438,7 +111,16 @@ module Form =
                     formVersion <- formVersion + 1
                     match t' with
                     | Some t'' ->
-                        localFields.Value |> List.iter ( fun field -> field.HasError <- not <| field.Prevalidate t'')
+                        localFields.Value 
+                        |> List.iter ( fun field -> 
+                            if field.PrevalidateNecessary then
+                                let prevalidateView = field.PrevalidateView t''
+                                View.Sink ( function
+                                    | Some noErrors -> field.HasError <- not noErrors
+                                    | _ -> ()
+                                ) prevalidateView
+                                //field.HasError <- not <| field.Prevalidate t''
+                        )
                     | None -> ()
                 ) t.View
                 let errorMsg = Var.Create []
@@ -494,36 +176,63 @@ module Form =
                                 formVersion <- formVersion + 1
                                 match t' with
                                 | Some t'' ->
-                                    let errorFields =
-                                        this.Fields
-                                        |> List.map (fun field ->
-                                            { field with
-                                                Validations =
-                                                    field.Validations
-                                                    |> List.filter (fun validation -> not <| validation.ValidationFunction t'')
-                                            }
-                                        )
-                                        //|> List.concat
-                                    errorMsg.Value <-
-                                        errorFields
-                                        |> List.map ( fun field -> field.Validations )
-                                        |> List.concat
-                                        |> List.map ( fun validation -> validation.OnError )
-                                    localFields.Value <-
-                                        List.map2 ( fun a b ->
-                                            { a with HasError = not <| List.isEmpty b.Validations }
-                                        ) this.Fields errorFields
 
-                                    if
-                                        errorFields
-                                        |> List.map (fun field -> field.Validations)
-                                        |> List.concat
-                                        |> List.isEmpty
-                                    then
-                                        (
-                                            match this.OnSubmit with
-                                            | Sync onSubmit ->
+                                    // use the prevalidate view, to generate error. 
+                                    // on some false, show error
+                                    // on some true, start submit    
+
+                                    let validationViews =
+                                        this.Fields
+                                        |> List.map (fun field -> field.PrevalidateAndErrorView t'')
+
+                                    errorMsg.Value <- []
+                                    let accumulatorViewMapString (acc: View<string list>) (t: (View<bool option> * ValidationError<'DataType>)) =
+                                        let boolView = fst t
+                                        let errorF = snd t
+                                        View.Map2 (fun acc' bo -> 
+                                            match bo with
+                                            | Some false -> acc' @ [errorF.Value t'']
+                                            | Some true
+                                            | None -> acc'
+                                            ) acc boolView
                                             
+                                    let errorListView = 
+                                        validationViews
+                                        |> List.concat
+                                        |> List.fold accumulatorViewMapString (View.Const [])
+                                    let validatedView = 
+                                        validationViews
+                                        |> List.concat
+                                        |> List.map fst
+                                        |> List.fold FormField<'DataType>.accumulatorViewMapBool (View.Const (Some true))
+                                    
+                                    // update error messages
+                                    View.Sink (fun errorList -> errorMsg.Value <- errorList ) errorListView
+
+                                    // update local fields
+                                    
+                                    let fields =
+                                        List.map2 (fun a b ->
+                                            let fieldValidation =
+                                                b
+                                                |> List.map fst
+                                                |> List.fold FormField<'DataType>.accumulatorViewMapBool (View.Const (Some true))
+                                            View.Map (function
+                                                | Some false -> {a with HasError = true}
+                                                | _ -> a
+                                            ) fieldValidation
+                                    
+                                        ) this.Fields validationViews
+                                        |> List.fold (View.Map2 (fun acc' fv -> acc' @ [fv])) (View.Const [])
+
+                                    View.Sink (fun newFields -> localFields.Value <- newFields) fields 
+
+                                    // do submit if everything has validated
+                                    validatedView
+                                    |> View.Sink (function
+                                        | Some true ->
+                                            match this.OnSubmit with
+                                            | Sync onSubmit ->                                            
                                                 if onSubmit t' el ev then
                                                     errorMsg.Value <- []
                                                     successMsg.Value <- this.SubmitSuccess
@@ -540,11 +249,11 @@ module Form =
                                                         errorMsg.Value <- [this.SubmitFailure]
                                                     | Result.Failure msg ->
                                                         errorMsg.Value <- [msg]
-                                                } |> Async.Start
-                                            )
-                                    else ()
-
-                                | None -> ()
+                                                } |> Async.Start                                             
+                                        | _ -> ()
+                                    )   
+                                | None -> ()           
+                                
                                 )
                             ][text this.SubmitButtonText] :> Doc
                          )

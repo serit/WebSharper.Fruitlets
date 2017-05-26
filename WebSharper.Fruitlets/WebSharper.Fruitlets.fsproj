@@ -58,6 +58,10 @@
     <Compile Include="Result.fs" />
     <Compile Include="Tab.fs" />
     <Compile Include="Pagination.fs" />
+    <Compile Include="Select.fs" />
+    <Compile Include="MultipleInput.fs" />
+    <Compile Include="OptionalInput.fs" />
+    <Compile Include="Input.fs" />
     <Compile Include="Form.fs" />
     <Compile Include="Modal.fs" />
     <Compile Include="Sort.fs" />

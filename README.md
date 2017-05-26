@@ -13,7 +13,11 @@ so remember to include the following in your header.
 ```
 
 ## Versions
-Current version is 0.2.7
+Current version is 0.2.8
+
+### 0.2.8
+
+Form validation can be asynchronous and error message can be a function
 
 ### 0.2.7
 

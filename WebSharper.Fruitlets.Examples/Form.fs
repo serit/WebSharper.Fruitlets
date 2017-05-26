@@ -31,18 +31,24 @@ module FormClient =
 
         let firstHasCapital =
             {
-                ValidationFunction = (fun i -> hasCapital i.First)
-                OnError = "First name should start with a capital"
+                ValidationFunction = ValidationFunction<InputForm>.Sync (fun i -> hasCapital i.First)
+                OnError = ValidationError<InputForm>.Simple "First name should start with a capital"
             }
         let firstNotEmpty =
             {
-                ValidationFunction = (fun i -> i.First <> "")
-                OnError = "First name can not be empty"
+                ValidationFunction = ValidationFunction<InputForm>.Sync (fun i -> i.First <> "")
+                OnError = ValidationError<InputForm>.Simple "First name can not be empty"
             }
         let lastMoreThan2 =
             {
-                ValidationFunction = (fun i -> i.Last.Length > 2)
-                OnError = "Last name should contain more than 2 characters"
+                ValidationFunction = ValidationFunction<InputForm>.Sync (fun i -> i.Last.Length > 1)
+                OnError = ValidationError<InputForm>.Simple "Last name should contain more than 1 character"
+            }
+            
+        let askTheServer speed =
+            {
+                ValidationFunction = ValidationFunction<InputForm>.Async (fun i -> Server.AskTheServer (List.ofSeq i.Hobbies) speed)
+                OnError = ValidationError<InputForm>.Sync (fun i -> sprintf "Hi %s you forgot to enter hobbies %i" i.First speed)
             }
 
         let testForm =
@@ -50,14 +56,15 @@ module FormClient =
                 Id = 1
                 Fields =
                     [
-                        FormField<InputForm>.Create ("First", [firstHasCapital; firstNotEmpty], InputType.String ((fun i -> i.First), fun i f -> {i with First = f}))
-                        FormField<InputForm>.Create ("Last", [lastMoreThan2], InputType.String ((fun i -> i.Last), fun i l -> {i with Last = l}))
-                        FormField<InputForm>.Create ("Hobbies", [], InputType.StringSeq ((fun i -> i.Hobbies), fun i l -> {i with Hobbies = l}))
+                        FormField<InputForm>.Create ("First", [firstHasCapital; firstNotEmpty], Input.String ((fun i -> i.First), fun i f -> {i with First = f}))
+                        FormField<InputForm>.Create ("Last", [lastMoreThan2], Input.String ((fun i -> i.Last), fun i l -> {i with Last = l}))
+                        FormField<InputForm>.Create ("Hobbies", [], Input.String ((fun i -> String.concat ";" i.Hobbies), fun i l -> {i with Hobbies = l.Split ';'}))
+                        FormField<InputForm>.Create ("Hobbies", [askTheServer 2000; askTheServer 0; askTheServer 5000; askTheServer 1000], Input.StringSeq ((fun i -> i.Hobbies), fun i l -> {i with Hobbies = l}))
                     ]
                 SubmitButtonText = "Submit"
                 SubmitSuccess = "Success"
                 SubmitFailure = "Failure"
-                OnSubmit = fun (t: InputForm option) el ev -> Console.Log t; true
+                OnSubmit = Sync <| fun (t: InputForm option) el ev -> Console.Log t; true
             }
 
         div[

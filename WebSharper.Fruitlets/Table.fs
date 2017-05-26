@@ -9,7 +9,7 @@ open WebSharper.UI.Next.Html
 // Bootstrap table
 [<JavaScript>]
 module Table =
-    open Form
+    open Input
 
     [<Inline "$obj[$field]">]
     let private JSGetIntField obj field = X<int>
@@ -163,7 +163,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text <| get t ])
                 SortFunction = Some (fun t -> Sort.String <| get t )
-                EditField = Some (Form.String (get, set))
+                EditField = Some (Input.String (get, set))
             }
         /// A string option field
         static member EditColumn (name, get : ('DataType -> string option), set : ('DataType -> string option -> 'DataType)) =
@@ -174,14 +174,14 @@ module Table =
                 Name = name
                 DocList = (fun t -> [ text << SomeOrDefault <| get t])
                 SortFunction = Some (fun t -> Sort.String << SomeOrDefault <| get t )
-                EditField = Some (Form.StringOption ( get, set)) }
+                EditField = Some (Input.StringOption ( get, set)) }
         /// An int field
         static member EditColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType)) =
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << string <| get t ])
                 SortFunction = Some (fun t -> Sort.Int <| get t )
-                EditField = Some (Form.Int (get, set)) }
+                EditField = Some (Input.Int (get, set)) }
         /// An int option field
         static member EditColumn (name, get : ('DataType -> int option), set : ('DataType -> int option -> 'DataType)) =
             let SomeOrDefaultString = function
@@ -194,14 +194,14 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.Int << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.IntOption (get, set)) }
+                EditField = Some (Input.IntOption (get, set)) }
 
         static member EditColumn (name, get : ('DataType -> float), set : ('DataType -> float -> 'DataType)) =
             { Column<'DataType>.empty with
                 Name = name
                 DocList = (fun t -> [text << string <| get t ])
                 SortFunction = Some (fun t -> Sort.Float <| get t )
-                EditField = Some (Form.Float (get, set)) }
+                EditField = Some (Input.Float (get, set)) }
         static member EditColumn (name, get : ('DataType -> float option), set : ('DataType -> float option -> 'DataType)) =
             let SomeOrDefaultString = function
                 | Some t' -> string t'
@@ -213,14 +213,14 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.Float << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.FloatOption (get, set)) }
+                EditField = Some (Input.FloatOption (get, set)) }
 
         static member EditColumn (name, get : ('DataType -> bool), set : ('DataType -> bool -> 'DataType)) =
             { Column<'DataType>.empty with 
                 Name = name
                 DocList = (fun t -> [text <| if get t then "\u00D7" else "" ])
                 SortFunction = Some (fun t -> Sort.Bool <| get t )
-                EditField = Some (Form.Bool (get, set)) }
+                EditField = Some (Input.Bool (get, set)) }
 
         /// TimeSpan Field
         static member EditTimeSpanColumn (name, get : ('DataType -> System.TimeSpan), set : ('DataType -> System.TimeSpan -> 'DataType)) =
@@ -228,7 +228,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << Time.showTime <| (get t).Ticks ])
                 SortFunction = Some (fun t -> Sort.Int << int <| (get t).Ticks )
-                EditField = Some (Form.Time (get, set)) }
+                EditField = Some (Input.Time (get, set)) }
 
         /// TimeSpan option Field
         static member EditTimeSpanColumn (name, get : ('DataType -> System.TimeSpan option), set : ('DataType -> System.TimeSpan option -> 'DataType)) =
@@ -244,7 +244,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.Int << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.TimeOption (get, set))
+                EditField = Some (Input.TimeOption (get, set))
             }
         /// Under construction
         static member EditDateColumn (name, get : ('DataType -> System.DateTime), set : ('DataType -> System.DateTime -> 'DataType)) =
@@ -254,7 +254,7 @@ module Table =
                     let dt = get t |> fun dt' -> new Date(dt'.Year,dt'.Month - 1, dt'.Day)
                     [text <| dt.ToDateString() ])
                 SortFunction = Some (fun t -> Sort.DateTime <| (get t ))
-                EditField = Some (Form.Date (get, set)) }
+                EditField = Some (Input.Date (get, set)) }
         /// Under construction
         static member EditDateColumn (name, get : ('DataType -> System.DateTime option), set : ('DataType -> System.DateTime option -> 'DataType)) =
             let SomeOrDefaultString (dt: System.DateTime option) =
@@ -268,7 +268,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [text << SomeOrDefaultString <| get t ])
                 SortFunction = Some (fun t -> Sort.DateTime << SomeOrDefaultSort <| get t )
-                EditField = Some (Form.DateOption (get, set)) }
+                EditField = Some (Input.DateOption (get, set)) }
                 
         /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType), optionMap : Var<Map<int,string>>) =
@@ -280,7 +280,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
-                EditField = Some (Form.Select (get, set, optionMap)) }
+                EditField = Some (Input.Select (get, set, optionMap)) }
         /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('DataType -> string), set : ('DataType -> string -> 'DataType), optionMap : Var<Map<string,string>>) =
             let findInMap (map : Map<string,string>) key =
@@ -291,7 +291,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
-                EditField = Some (Form.SelectWithString (get, set, optionMap)) }
+                EditField = Some (Input.SelectWithString (get, set, optionMap)) }
 
         /// This column can be used to represent and change Nullable foreign keys
         static member EditSelectColumn (name, get : ('DataType -> int option), set : ('DataType -> int option -> 'DataType), optionMap : Var<Map<int,string>>) =
@@ -306,7 +306,7 @@ module Table =
                 Name = name
                 DocList = (fun t -> [textView <| View.Map (fun map -> findInMap map (get t)) optionMap.View])
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
-                EditField = Some (Form.SelectOption (get, set, optionMap)) }
+                EditField = Some (Input.SelectOption (get, set, optionMap)) }
 
         /// Use the parse functions with caution. They are not typesafe and meant to be used on the client side in combination with Reflection on the server side.
         static member Parse(name, _type) =
@@ -421,7 +421,7 @@ module Table =
                 )
                 |> Array.map (fun column ->
                     match (column.EditField, column.Permission.Form) with
-                    | None, _  | _, Read -> (Form.Disabled column.DocList).show column.Name item
+                    | None, _  | _, Read -> (Input.Disabled column.DocList).show column.Name item
                     | Some editField, _ -> editField.show column.Name item
                 )
                 |> Array.toList
