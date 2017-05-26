@@ -11,12 +11,38 @@ open WebSharper.UI.Next.Html
 module Form =
 
     open Input
-
+    
+    type ValidationFunction<'DataType> =
+        | Sync of ('DataType -> bool)
+        | Async of ('DataType -> Async<Result.Result<bool,string>>)
+        member this.validates (t: 'DataType) =
+            match this with
+            | Sync f -> Var.Create <| Some (f t)
+            | Async f -> 
+                let varBool = Var.Create <| None
+                async{
+                    let! b = f t
+                    match b with
+                    | Result.Success true -> varBool.Value <- Some true
+                    | _ -> varBool.Value <- Some false
+                } |> Async.Start
+                varBool
+            
+            
+    type ValidationError<'DataType> =
+        | Simple of string
+        | Sync of ('DataType -> string)
+        //| Async of ('DataType -> Async<Result.Result<string,string>>)
+        member this.Value t =
+            match this with
+            | Sync f -> f t 
+            | Simple str -> str
+    
     (* Field, FormField and Validation are used to generate forms with validation *)
     type Validation<'DataType> =
         {
-            ValidationFunction: 'DataType -> bool
-            OnError: string
+            ValidationFunction: ValidationFunction<'DataType> //'DataType -> bool
+            OnError: ValidationError<'DataType>
         }
 
     type FormField<'DataType> =
@@ -26,12 +52,25 @@ module Form =
             Input: InputType<'DataType>
             mutable HasError: bool
         }
-        member this.Prevalidate t =
+        member this.PrevalidateView t =            
+            let initialValidate = View.Const (Some true)
+            this.Validations 
+            |> List.map (fun v -> (v.ValidationFunction.validates t).View)
+            |> List.fold FormField<'DataType>.accumulatorViewMapBool initialValidate
+        member this.PrevalidateAndErrorView t =            
+            let initialValidate = View.Const (Some true)
+            this.Validations 
+            |> List.map (fun v -> (v.ValidationFunction.validates t).View, v.OnError)
+
+        member this.PrevalidateNecessary =  
             not <| List.isEmpty this.Validations
-            &&
-            this.Validations
-            |> List.filter (fun v -> not <| v.ValidationFunction t)
-            |> List.isEmpty
+        static member accumulatorViewMapBool (acc: View<bool option>) (t: View<bool option>) =
+            View.Map2 (fun acc' t' -> 
+                match (acc', t') with
+                | Some bAcc, Some b -> Some (b && bAcc)
+                | Some _, None -> None
+                | None, _ -> None
+                ) acc t
         static member empty =
             {
                 Label = ""
@@ -72,7 +111,16 @@ module Form =
                     formVersion <- formVersion + 1
                     match t' with
                     | Some t'' ->
-                        localFields.Value |> List.iter ( fun field -> field.HasError <- not <| field.Prevalidate t'')
+                        localFields.Value 
+                        |> List.iter ( fun field -> 
+                            if field.PrevalidateNecessary then
+                                let prevalidateView = field.PrevalidateView t''
+                                View.Sink ( function
+                                    | Some noErrors -> field.HasError <- not noErrors
+                                    | _ -> ()
+                                ) prevalidateView
+                                //field.HasError <- not <| field.Prevalidate t''
+                        )
                     | None -> ()
                 ) t.View
                 let errorMsg = Var.Create []
@@ -128,36 +176,63 @@ module Form =
                                 formVersion <- formVersion + 1
                                 match t' with
                                 | Some t'' ->
-                                    let errorFields =
-                                        this.Fields
-                                        |> List.map (fun field ->
-                                            { field with
-                                                Validations =
-                                                    field.Validations
-                                                    |> List.filter (fun validation -> not <| validation.ValidationFunction t'')
-                                            }
-                                        )
-                                        //|> List.concat
-                                    errorMsg.Value <-
-                                        errorFields
-                                        |> List.map ( fun field -> field.Validations )
-                                        |> List.concat
-                                        |> List.map ( fun validation -> validation.OnError )
-                                    localFields.Value <-
-                                        List.map2 ( fun a b ->
-                                            { a with HasError = not <| List.isEmpty b.Validations }
-                                        ) this.Fields errorFields
 
-                                    if
-                                        errorFields
-                                        |> List.map (fun field -> field.Validations)
-                                        |> List.concat
-                                        |> List.isEmpty
-                                    then
-                                        (
-                                            match this.OnSubmit with
-                                            | Sync onSubmit ->
+                                    // use the prevalidate view, to generate error. 
+                                    // on some false, show error
+                                    // on some true, start submit    
+
+                                    let validationViews =
+                                        this.Fields
+                                        |> List.map (fun field -> field.PrevalidateAndErrorView t'')
+
+                                    errorMsg.Value <- []
+                                    let accumulatorViewMapString (acc: View<string list>) (t: (View<bool option> * ValidationError<'DataType>)) =
+                                        let boolView = fst t
+                                        let errorF = snd t
+                                        View.Map2 (fun acc' bo -> 
+                                            match bo with
+                                            | Some false -> acc' @ [errorF.Value t'']
+                                            | Some true
+                                            | None -> acc'
+                                            ) acc boolView
                                             
+                                    let errorListView = 
+                                        validationViews
+                                        |> List.concat
+                                        |> List.fold accumulatorViewMapString (View.Const [])
+                                    let validatedView = 
+                                        validationViews
+                                        |> List.concat
+                                        |> List.map fst
+                                        |> List.fold FormField<'DataType>.accumulatorViewMapBool (View.Const (Some true))
+                                    
+                                    // update error messages
+                                    View.Sink (fun errorList -> errorMsg.Value <- errorList ) errorListView
+
+                                    // update local fields
+                                    
+                                    let fields =
+                                        List.map2 (fun a b ->
+                                            let fieldValidation =
+                                                b
+                                                |> List.map fst
+                                                |> List.fold FormField<'DataType>.accumulatorViewMapBool (View.Const (Some true))
+                                            View.Map (function
+                                                | Some false -> {a with HasError = true}
+                                                | _ -> a
+                                            ) fieldValidation
+                                    
+                                        ) this.Fields validationViews
+                                        |> List.fold (View.Map2 (fun acc' fv -> acc' @ [fv])) (View.Const [])
+
+                                    View.Sink (fun newFields -> localFields.Value <- newFields) fields 
+
+                                    // do submit if everything has validated
+                                    validatedView
+                                    |> View.Sink (function
+                                        | Some true ->
+                                            match this.OnSubmit with
+                                            | Sync onSubmit ->                                            
                                                 if onSubmit t' el ev then
                                                     errorMsg.Value <- []
                                                     successMsg.Value <- this.SubmitSuccess
@@ -174,11 +249,11 @@ module Form =
                                                         errorMsg.Value <- [this.SubmitFailure]
                                                     | Result.Failure msg ->
                                                         errorMsg.Value <- [msg]
-                                                } |> Async.Start
-                                            )
-                                    else ()
-
-                                | None -> ()
+                                                } |> Async.Start                                             
+                                        | _ -> ()
+                                    )   
+                                | None -> ()           
+                                
                                 )
                             ][text this.SubmitButtonText] :> Doc
                          )
