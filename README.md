@@ -13,7 +13,15 @@ so remember to include the following in your header.
 ```
 
 ## Versions
-Current version is 0.2.8
+Current version is 0.3.0
+
+### 0.3.0
+
+Optional reCaptcha check before submit. Find info [here](https://www.google.com/recaptcha). When using, don't forget to load the corresponding script:
+
+```html
+<script src='https://www.google.com/recaptcha/api.js' async="true" defer="true"></script>
+```
 
 ### 0.2.8
 

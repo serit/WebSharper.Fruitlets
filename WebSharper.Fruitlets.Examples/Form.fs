@@ -51,7 +51,7 @@ module FormClient =
                 OnError = ValidationError<InputForm>.Sync (fun i -> sprintf "Hi %s you forgot to enter hobbies %i" i.First speed)
             }
 
-        let testForm =
+        let testForm : Form<InputForm> =
             {
                 Id = 1
                 Fields =
@@ -61,10 +61,11 @@ module FormClient =
                         FormField<InputForm>.Create ("Hobbies", [], Input.String ((fun i -> String.concat ";" i.Hobbies), fun i l -> {i with Hobbies = l.Split ';'}))
                         FormField<InputForm>.Create ("Hobbies", [askTheServer 2000; askTheServer 0; askTheServer 5000; askTheServer 1000], Input.StringSeq ((fun i -> i.Hobbies), fun i l -> {i with Hobbies = l}))
                     ]
-                SubmitButtonText = "Submit"
+                SubmitButton = ReCaptcha ("6LeT2CMUAAAAAMihux1kajdTxA8kw041f5pB7gCH", "Submit")
                 SubmitSuccess = "Success"
                 SubmitFailure = "Failure"
                 OnSubmit = Sync <| fun (t: InputForm option) el ev -> Console.Log t; true
+                Status = Var.Create NoStatus
             }
 
         div[
