@@ -220,7 +220,6 @@ module Form =
                         let boolView = fst t
                         let errorF = snd t
                         View.Map2 (fun acc' bo ->
-                            Console.Log <| sprintf "%s: %A" (errorF.Value t'') bo
                             match bo with
                             | Some false -> acc' @ [errorF.Value t'']
                             | Some true
@@ -290,10 +289,11 @@ module Form =
                     match this.SubmitButton with
                     | Simple buttonText ->
                         View.Map2 (fun a b -> a,b) t.View this.Status.View
-                        //t.View
                         |> Doc.BindView( fun (t', status) ->
                             match status with
-                            | Loaded ->
+                            | Loaded 
+                            | Error _ 
+                            | Submitted ->
                                 buttonAttr[
                                     attr.id <| sprintf "fruit-form-submit-%i" this.Id
                                     attr.``class`` "btn btn-info fruit-btn fruit-btn-save"
@@ -331,7 +331,9 @@ module Form =
                                     on.afterRender afterRender
                                 ][
                                     Doc.BindView( function
-                                        | Loaded ->
+                                        | Loaded 
+                                        | Error _ 
+                                        | Submitted ->
                                             buttonAttr[
                                                 attr.id <| sprintf "fruit-form-submit-%i" this.Id
                                                 attr.``class`` "btn btn-info fruit-btn fruit-btn-save"
