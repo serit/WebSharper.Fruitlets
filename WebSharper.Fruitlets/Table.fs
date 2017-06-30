@@ -351,12 +351,43 @@ module Table =
         static member Parse(name, _type, header) =
             { Column<'DataType>.Parse(name, _type) with Header = header }
 
+    type TableRowDetail<'DataType> =
+        | NoDetail
+        | AllRows of ('DataType -> Elt)
+        | SelectedRow of ('DataType -> Elt)        
+        
+    type RowButtonStatic =
+        {
+            Attributes:  Attr list
+            Docs:  Doc list
+        }
+    type RowButtonFromItem<'DataType> =
+        {
+            Attributes: 'DataType -> Attr list
+            Docs: 'DataType -> Doc list
+        }
+
     type Table<'Key, 'DataType> when 'Key : equality  =
         {
+            /// the id of the table    
             Id': string
+            /// Set default table classes Striped | Bordered | Custom of string
             Class: TableClass []
+            /// The datasource for the table rows
             DataSource: DataSource.DS<'Key,'DataType>
+            /// The Column type generates a column from type 'DataType
             Columns: Column<'DataType> []
+            /// Optional additional attributes added to the table object
+            Attributes: Attr []
+            /// Whether a detail wil be shown for no rows, all rows or the selected row
+            /// The row detail will be show in a separate row uderneath the main one
+            ShowDetail: TableRowDetail<'DataType>
+            /// Shown as description in form header
+            ItemDescription: 'DataType -> string
+            /// Optional custom buttons
+            AddButton: RowButtonStatic option
+            EditButton: RowButtonFromItem<'DataType> option
+            DeleteButton: RowButtonFromItem<'DataType> option
         }
         member this.ErrorStatus =
             match this.DataSource.CrudFunctions with
@@ -373,7 +404,7 @@ module Table =
                 on.click (fun el ev ->
                     this.DataSource.Update t
                     )][text "Save"] :> Doc
-        member private this.DeleteButton (t : 'DataType) =
+        member private this.DeleteButtonShow (t : 'DataType) =
             let modalId = sprintf "confirm-delete-%s-%s" this.Id' <| (this.DataSource.IdFunc t).ToString()
             let confirmDialog () =
                 let modalwindow =
@@ -396,12 +427,15 @@ module Table =
                         ])
                         Modal.Small
                 modalwindow.Show()
+                
+            let attrs, content =
+                match this.DeleteButton with
+                | Some button -> button.Attributes t, button.Docs t
+                | None -> [attr.``class``  "btn btn-danger fruit-btn fruit-btn-delete fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-trash"][] ]
+
             divAttr[attr.style "display: inline-block"][
                 confirmDialog()
-                Modal.Button modalId
-                    [
-                        attr.``class`` "btn btn-danger fruit-btn fruit-btn-delete fruit-btn-icon-only"
-                    ] [iAttr[attr.``class`` "fa fa-trash"][]]
+                Modal.Button modalId attrs content
             ] :> Doc
         member private this.EditFooter (t : 'DataType option) =
             match t with
@@ -429,27 +463,41 @@ module Table =
 
             Modal.Window.Create
                 windowId
-                (h2Attr [attr.``class`` "fruit-modal-header"] [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "Item %A" (this.DataSource.IdFunc t') | None -> "")) item.View ] )
+                (h2Attr [attr.``class`` "fruit-modal-header"] [textView <| View.Map (fun t ->  (match t with | Some t' ->  sprintf "Item %s" (this.ItemDescription t') | None -> "")) item.View ] )
                 (editForm ())
                 (Doc.BindView (fun t -> this.EditFooter t) item.View)
                 Modal.WindowSize.Normal
-        member private this.CreateButton() =
+        member private this.EditButtonShow idCode (currentItem: Var<'DataType option>) (t) =
+            let attrs, content =
+                match this.EditButton with
+                | Some button -> button.Attributes t, button.Docs t
+                | None -> [attr.``class``  "btn btn-primary fruit-btn fruit-btn-edit fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-edit"][] ]
+
+            Modal.Button
+                idCode (attrs @ [ on.click( fun el ev -> currentItem.Value <- Some t)]) content :> Doc
+            
+        member private this.CreateButtonShow() =
             if this.DataSource.CreateFunc
             then
                 // a button and an edit field: new. on new, open window with empty form
                 let currentItem = Var.Create None
                 let newModalId = (sprintf "new-%s" this.Id')
+                
+                let attrs, content =
+                    match this.AddButton with
+                    | Some button -> button.Attributes, button.Docs
+                    | None -> [attr.``class`` "btn btn-success fruit-btn fruit-btn-create fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-plus"][] ]
+
                 div[
                     (this.EditWindow currentItem newModalId).Show()
-                    buttonAttr[
-                        attr.``class`` "btn btn-success fruit-btn fruit-btn-create fruit-btn-icon-only"
-                        attr.``data-`` "toggle" "modal"
-                        attr.``data-`` "target" <| "#" + newModalId
-                        on.click (fun el ev -> this.DataSource.Create currentItem)
-                    ][
-                        iAttr[attr.``class`` "fa fa-plus"][]
-                        //text " Add"
-                    ]
+                    buttonAttr 
+                        ( attrs @ 
+                            [
+                                attr.``data-`` "toggle" "modal"
+                                attr.``data-`` "target" <| "#" + newModalId
+                                on.click (fun el ev -> this.DataSource.Create currentItem)
+                        ] ) 
+                        content
                 ]:> Doc
             else Doc.Empty
         member this.ShowHeader () =
@@ -476,24 +524,18 @@ module Table =
                         tdAttr[attr.``class`` "fruit-edit-btn-column"][
                             (
                                 if this.isEditable
-                                then
-                                    Modal.Button
-                                        idCode
-                                        [attr.``class``  "btn btn-primary fruit-btn fruit-btn-edit fruit-btn-icon-only"; on.click( fun el ev -> currentItem.Value <- Some t) ]
-                                        [ iAttr[ attr.``class`` "fa fa-edit"][] ] :> Doc
+                                then this.EditButtonShow idCode currentItem t
                                 else Doc.Empty)
                             (
                                 if this.isDeletable
-                                then this.DeleteButton t
+                                then this.DeleteButtonShow t
                                 else Doc.Empty)
                         ] :> Doc
                     ]
                 else List.empty
                 |> List.toArray
             let rows view =
-                view
-                |> Seq.filter filter
-                |> Seq.map ( fun t ->
+                let rowFunction t =
                     let row =
                         this.Columns
                         |> Array.filter ( fun column ->
@@ -510,7 +552,14 @@ module Table =
                             | None -> ()
                         )
                     ] row :> Doc
-                )
+                let detailRowFunction t =
+                    match this.ShowDetail with
+                    | NoDetail -> Doc.Empty  
+                    | AllRows f -> f t :> Doc 
+                    | SelectedRow f -> f t :> Doc      
+                view
+                |> Seq.filter filter
+                |> Seq.collect (fun t -> List.toSeq [rowFunction t; detailRowFunction t])
                 |> Seq.toList
             let classes =
                 if Array.isEmpty this.Class then "table fruit-table"
@@ -536,7 +585,7 @@ module Table =
             divAttr[
                 attr.``class`` "fruit-table-wrapper"
             ][
-                this.CreateButton()
+                this.CreateButtonShow()
                 Doc.BindView ( fun _ ->
                     this.ShowTableFilter (fun _ -> true) currentItem
                 ) this.DataSource.Model.View
@@ -549,7 +598,7 @@ module Table =
             divAttr[
                 attr.``class`` "fruit-table-wrapper"
             ][
-                this.CreateButton()
+                this.CreateButtonShow()
                 Doc.BindView ( fun rowdata ->
                     let pages =
                         {0 ..  ((Seq.length rowdata - 1)/ pageSize)}
@@ -566,6 +615,12 @@ module Table =
                 Class = Array.empty
                 DataSource = DataSource.DS<'Key,'DataType>.Create (id, (fun () -> async{return Array.empty}))
                 Columns = [||]
+                Attributes = [||]
+                ShowDetail = NoDetail
+                ItemDescription = (fun _ -> "")
+                AddButton = None
+                EditButton = None
+                DeleteButton = None
             }
         /// Create a read only table based on an asynchronous source
         static member Create (Id, (keyFunction: ('DataType -> 'Key)), columns, (readFunc: unit -> Async<array<'DataType>>)) =
@@ -574,6 +629,12 @@ module Table =
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
+                Attributes = [||]
+                ShowDetail = NoDetail
+                ItemDescription = (fun _ -> "")
+                AddButton = None
+                EditButton = None
+                DeleteButton = None
             }
         /// Create a table based on an asynchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
@@ -582,6 +643,12 @@ module Table =
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
+                Attributes = [||]
+                ShowDetail = NoDetail
+                ItemDescription = (fun _ -> "")
+                AddButton = None
+                EditButton = None
+                DeleteButton = None
             }
         /// Create a table based on an asynchronous, editable source + a function for when an item is selected
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (itemSelectFunc), (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
@@ -590,6 +657,12 @@ module Table =
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, itemSelectFunc, createFunc, updateFunc, deleteFunc)
+                Attributes = [||]
+                ShowDetail = NoDetail
+                ItemDescription = (fun _ -> "")
+                AddButton = None
+                EditButton = None
+                DeleteButton = None
             }
         /// Create a table based on a synchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
@@ -598,6 +671,12 @@ module Table =
                 Class = [| Striped; Bordered |]
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
+                Attributes = [||]
+                ShowDetail = NoDetail
+                ItemDescription = (fun _ -> "")
+                AddButton = None
+                EditButton = None
+                DeleteButton = None
             }
 
 
