@@ -88,6 +88,7 @@ module Table =
             AttrList: ('DataType -> list<Attr>) option
             DocList: ('DataType -> list<Doc>)
             SortFunction: ('DataType -> Sort.SortableType) option
+            EditFieldAttrList: (Var<'DataType option> -> list<Attr>) option
             EditField: InputType<'DataType> option
             Permission: ColumnPermission
         }
@@ -132,7 +133,7 @@ module Table =
             | None -> td
 
         static member empty =
-            {Name = ""; Header = None; AttrList = None; DocList = (fun t -> List.empty); SortFunction = None; EditField = None; Permission = {Table = Read; Form = ReadWrite }}
+            {Name = ""; Header = None; AttrList = None; DocList = (fun t -> List.empty); SortFunction = None; EditField = None; EditFieldAttrList = None; Permission = {Table = Read; Form = ReadWrite }}
 
         static member SimpleColumn (name, get : ('DataType -> obj)) =
             { Column<'DataType>.empty with Name = name; DocList = (fun t -> [text << string <| get t ])}
@@ -454,9 +455,19 @@ module Table =
                     column.Permission.Form <> Invisible
                 )
                 |> Array.map (fun column ->
-                    match (column.EditField, column.Permission.Form) with
-                    | None, _  | _, Read -> (Input.Disabled column.DocList).show column.Name item
-                    | Some editField, _ -> editField.show column.Name item
+                    match (column.EditField, column.Permission.Form, column.EditFieldAttrList) with
+                    | None, _, _  
+                    | _, Read, _ -> (Input.Disabled column.DocList).show column.Name item
+                    | Some editField, _, None -> editField.show column.Name item
+                    | Some editField, _, Some attrList -> 
+                        // assuming attributes are pretty stable
+                        let stableAttrList = fun t ->
+                            [
+                                attr.id column.Name
+                                attr.name column.Name
+                                attr.``class`` "form-control fruit-form-control"
+                            ] @ attrList t
+                        editField.show(column.Name, stableAttrList, editField.formWrapper column.Name) item
                 )
                 |> Array.toList
                 |> formAttr [attr.``class`` "fruit-form"]

@@ -2,14 +2,14 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.3.2</version>
+    <version>0.3.3</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Tables with more customizable features</releaseNotes>
+    <releaseNotes>Add attributes to edit fields in modal window</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>

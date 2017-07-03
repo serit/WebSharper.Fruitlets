@@ -60,8 +60,12 @@ module Input =
                 content
                 spanAttr[attr.``class`` "glyphicon glyphicon-ok form-control-feedback"][]
             ] :> Doc
-        member this.show (label' : string, attrs : Attr list, formWrapper) =
+        member this.show (label' : string, attrs' : Var<'DataType option> -> Attr list, formWrapper) =
+            let attrGetter =
+                fun (t': Var<'DataType option>) -> attrs' t'
+
             fun (t' : Var<'DataType option>) ->
+                let attrs = attrGetter t'
                 match this with
                 | Disabled (getter) ->
 
@@ -144,7 +148,7 @@ module Input =
                 | SelectOption (getter, setter, options) ->
                     OptionalInput.SelectField label' getter setter options t'
         member this.show (label') =
-            let attrs =
+            let attrs = fun (_: Var<'DataType option>) ->
                 [
                     attr.id label'
                     attr.name label'
