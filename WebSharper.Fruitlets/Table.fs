@@ -389,11 +389,35 @@ module Table =
             AddButton: RowButtonStatic option
             EditButton: RowButtonFromItem<'DataType> option
             DeleteButton: RowButtonFromItem<'DataType> option
+
+            // To implement:
+            // ModalSaveButton: RowButtonFromItem<'DataType> option
+            // ModalCancelButton: RowButtonStatic option
+            //
+            /// ShowErrors. On by default
+            ShowErrors: bool
+
         }
         member this.ErrorStatus =
             match this.DataSource.CrudFunctions with
             | DataSource.CRUD.Rpc rpc -> rpc.ErrorStatus
             | DataSource.CRUD.Synchronous syn -> syn.ErrorStatus
+        member this.ErrorBox () =
+            Doc.BindView( function
+                | "" -> Doc.Empty
+                | msg ->
+                    divAttr[
+                        attr.``class`` "alert alert-danger alert-dismissable"
+                    ][
+                        aAttr[
+                            attr.href "#"
+                            attr.``class`` "close"
+                            attr.``data-`` "dismiss" "alert"
+                            on.click (fun _ _ -> this.ErrorStatus.Value <- "")
+                        ][iAttr[attr.``class`` "fa fa-close"][]]
+                        text msg
+                    ] :> Doc
+            ) this.ErrorStatus.View
         member this.isEditable =
             this.Columns
             |> Array.exists (fun c -> c.EditField.IsSome)
@@ -596,6 +620,7 @@ module Table =
             divAttr[
                 attr.``class`` "fruit-table-wrapper"
             ][
+                (if this.ShowErrors then this.ErrorBox() else Doc.Empty)
                 this.CreateButtonShow()
                 Doc.BindView ( fun _ ->
                     this.ShowTableFilter (fun _ -> true) currentItem
@@ -609,6 +634,7 @@ module Table =
             divAttr[
                 attr.``class`` "fruit-table-wrapper"
             ][
+                (if this.ShowErrors then this.ErrorBox() else Doc.Empty)
                 this.CreateButtonShow()
                 Doc.BindView ( fun rowdata ->
                     let pages =
@@ -632,6 +658,7 @@ module Table =
                 AddButton = None
                 EditButton = None
                 DeleteButton = None
+                ShowErrors = true
             }
         /// Create a read only table based on an asynchronous source
         static member Create (Id, (keyFunction: ('DataType -> 'Key)), columns, (readFunc: unit -> Async<array<'DataType>>)) =
@@ -646,6 +673,7 @@ module Table =
                 AddButton = None
                 EditButton = None
                 DeleteButton = None
+                ShowErrors = true
             }
         /// Create a table based on an asynchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
@@ -660,6 +688,7 @@ module Table =
                 AddButton = None
                 EditButton = None
                 DeleteButton = None
+                ShowErrors = true
             }
         /// Create a table based on an asynchronous, editable source + a function for when an item is selected
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (itemSelectFunc), (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
@@ -674,6 +703,7 @@ module Table =
                 AddButton = None
                 EditButton = None
                 DeleteButton = None
+                ShowErrors = true
             }
         /// Create a table based on a synchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
@@ -688,6 +718,7 @@ module Table =
                 AddButton = None
                 EditButton = None
                 DeleteButton = None
+                ShowErrors = true
             }
 
 

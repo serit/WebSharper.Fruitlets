@@ -31,18 +31,20 @@ module DataSource =
         member this.Create (currentItem: Var<'T option>) (model : ListModel<'U,'T>) =
             match this.CreateFunc with
             | Some cf ->
+                this.ErrorStatus.Value <- ""
                 async {
                     let! result = cf ()
                     match result with
                     | Result.Success r -> currentItem.Value <- Some r
                     | Result.Failure msg -> 
-                        Console.Log msg
+                        Console.Warn msg
                         this.ErrorStatus.Value <- msg
                 } |> Async.Start
             | None -> ()
         member this.Read (model : ListModel<'U,'T>) =
             match this.ReadFunc with
             | Some rf ->
+                this.ErrorStatus.Value <- ""
                 async {
                     let! data = rf()
                     model.Set data
@@ -50,7 +52,8 @@ module DataSource =
             | None -> ()
         member this.Update (item: 'T) (model : ListModel<'U,'T>) idFunc =
             match this.UpdateFunc with
-            | Some uf ->
+            | Some uf ->                
+                this.ErrorStatus.Value <- ""
                 async {
                     let! result = uf item
                     match result with
@@ -59,7 +62,7 @@ module DataSource =
                         then model.UpdateBy (fun t -> Some item) (idFunc data)
                         else model.Add data
                     | Result.Failure msg -> 
-                        Console.Log msg
+                        Console.Warn msg
                         this.ErrorStatus.Value <- msg
 
                     // todo: if false, there should be an error somewhere
@@ -77,12 +80,13 @@ module DataSource =
         member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
             match this.DeleteFunc with
             | Some df ->
+                this.ErrorStatus.Value <- ""
                 async {
                     let! result = df item
                     match result with
                     | Result.Success _ -> model.RemoveByKey (idFunc item)
                     | Result.Failure msg ->
-                        Console.Log msg
+                        Console.Warn msg
                         this.ErrorStatus.Value <- msg
                 } |> Async.Start
             | None -> ()
