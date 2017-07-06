@@ -16,6 +16,7 @@ open Server
 module Client =
 
     open WebSharper.Fruitlets.Table
+    open WebSharper.Fruitlets.Column
     let now = Server.now()
     
     let Body () =
@@ -27,7 +28,7 @@ module Client =
                 ("Title", FieldClass.String, None)
                 ("Rating", FieldClass.Float, None)
                 ("Voters", FieldClass.Int, None)
-                ("Rank", FieldClass.Int |> Optional, None)
+                ("Rank", Optional FieldClass.Int, None)
                 ("Rank", FieldClass.SelectDyn testList |> Optional, Some <| (fun () -> text "Rank 2"))
             |]
             |> Array.map Column<GameObject>.Parse
