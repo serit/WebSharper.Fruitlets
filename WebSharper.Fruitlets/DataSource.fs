@@ -176,7 +176,7 @@ module DataSource =
             Model: ListModel<'U,'T>
             mutable CrudFunctions: CRUD<'U,'T>
             mutable ItemSelectFunc: ('T -> Dom.Element -> Dom.Event -> unit) option
-            mutable SortDirection: Sort.SortDirection
+            SortFunction: Var<Sort.SortFunction<'T> option>
 
         }
         member this.Create (currentItem: Var<'T option>) =
@@ -223,7 +223,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Rpc <| RpcCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = None
-                SortDirection = Sort.Asc -1
+                SortFunction = Var.Create None
             }
         static member Create (idf,readFunction,itemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction) =
             {
@@ -231,7 +231,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Rpc <| RpcCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = Some itemSelectFunction
-                SortDirection = Sort.Asc -1
+                SortFunction = Var.Create None
             }
         static member Create (idf,readFunction,sortDirection,?ItemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction) =
             {
@@ -239,7 +239,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Rpc <| RpcCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = ItemSelectFunction
-                SortDirection = sortDirection
+                SortFunction = Var.Create <| Some sortDirection
             }
         static member Create (idf,readFunction,?CreateFunction,?UpdateFunction,?DeleteFunction) =
             {
@@ -247,7 +247,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = None
-                SortDirection = Sort.Asc -1
+                SortFunction = Var.Create None
             }
         static member Create (idf,readFunction,itemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction) =
             {
@@ -255,7 +255,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = Some itemSelectFunction
-                SortDirection = Sort.Asc -1
+                SortFunction = Var.Create None
             }
         static member Create (idf,readFunction,sortDirection,?ItemSelectFunction,?CreateFunction,?UpdateFunction,?DeleteFunction) =
             {
@@ -263,7 +263,7 @@ module DataSource =
                 Model = ListModel.Create idf Seq.empty
                 CrudFunctions = Synchronous <| SynchCrud<'U,'T>.Init(CreateFunction, Some readFunction,UpdateFunction,DeleteFunction)
                 ItemSelectFunc = ItemSelectFunction
-                SortDirection = sortDirection
+                SortFunction = Var.Create <| Some sortDirection
             }
 
 

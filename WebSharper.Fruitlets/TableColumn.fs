@@ -103,17 +103,18 @@ module Column =
             | Some sortFunc ->
                 thAttr([
                         on.click ( fun _ _ ->
-                            ds.SortDirection <- ds.SortDirection.Flip index
-                            Console.Log ds.SortDirection
-                            (sortFunc, ds.Model.Value)
-                            ||> ds.SortDirection.SortFunc index
-                            |> ds.Model.Set
+                            ds.SortFunction.Value <- 
+                                ds.SortFunction.Value 
+                                |> Option.bind (fun sortF -> 
+                                    Some <| sortF.FlipColumn index)
                         )
                 ] )[
                     headerField ()
                     iAttr[
                         attr.style "color: #aaa;"
-                        attr.``class`` <| ds.SortDirection.FAClass index
+                        attr.classDyn <| View.Map (function
+                            | Some (sortF: Sort.SortFunction<'DataType>) -> sortF.FAClass index
+                            | None -> "fa fa-fw fa-sort") ds.SortFunction.View
                     ][] :> Doc
                 ] :> Doc
             | None ->

@@ -8,24 +8,27 @@ open WebSharper.UI.Next.Html
 
 [<JavaScript>]
 module Sort =
+//
+//    type SortDirection =
+//        | Asc //of int
+//        | Desc //of int
+//        | AscByColumn of int
+//        | DescByColumn of int
+////        member this.SortFunc index =
+////            match this with
+////            | Asc i when i = index -> Seq.sortByDescending
+////            | _ -> Seq.sortBy
+//        member this.Flip =
+//            match this with
+//            | Asc -> Desc
+//            | _ -> Asc
+////        member this.FAClass index =
+////            "fa fa-fw fa-sort" +
+////            match this with
+////            | Asc i when i = index -> "-asc"
+////            | Desc i when i = index -> "-desc"
+////            | _ -> ""//
 
-    type SortDirection =
-        | Asc of int
-        | Desc of int
-        member this.SortFunc index =
-            match this with
-            | Asc i when i = index -> Seq.sortByDescending
-            | _ -> Seq.sortBy
-        member this.Flip index =
-            match this with
-            | Asc i when i = index -> Desc index
-            | _ -> Asc index
-        member this.FAClass index =
-            "fa fa-fw fa-sort" +
-            match this with
-            | Asc i when i = index -> "-asc"
-            | Desc i when i = index -> "-desc"
-            | _ -> ""
 
     [<StructuralComparison;StructuralEquality>]
     type SortableType =
@@ -69,4 +72,29 @@ module Sort =
                     | None -> "-"
         //| T of obj //* ('T -> ColumnType<'T>)
 
-
+        
+    type SortFunction<'T> =
+        | AscByFunction of ('T -> SortableType)
+        | DescByFunction of ('T -> SortableType)
+        | AscByColumn of int
+        | DescByColumn of int
+        member this.SortFunc index =
+            match this with
+            | AscByColumn i when i = index -> Seq.sortByDescending
+            | _ -> Seq.sortBy
+        member this.Flip =
+            match this with
+            | AscByFunction f -> DescByFunction f
+            | DescByFunction f -> AscByFunction f
+            | AscByColumn i -> DescByColumn i
+            | DescByColumn i -> AscByColumn i
+        member this.FlipColumn index =
+            match this with
+            | AscByColumn i when i = index -> DescByColumn index
+            | _ -> AscByColumn index
+        member this.FAClass index =
+            "fa fa-fw fa-sort" +
+            match this with
+            | AscByColumn i when i = index -> "-asc"
+            | DescByColumn i when i = index -> "-desc"
+            | _ -> ""

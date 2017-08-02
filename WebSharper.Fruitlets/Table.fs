@@ -45,7 +45,7 @@ module Table =
     type TableSettings<'DataType> =
         {            
             /// Whether a detail wil be shown for no rows, all rows or the selected row
-            /// The row detail will be show in a separate row uderneath the main one
+            /// The row detail will be show in a separate row underneath the main one
             ShowDetail: TableRowDetail<'DataType>
 
             /// Optional custom buttons
@@ -67,6 +67,9 @@ module Table =
             /// Shown as description in modal header
             ModalUpdateHeader: 'DataType -> string
             ModalDeleteHeader: 'DataType -> string
+
+            /// Show Table header
+            ShowTableHeader: bool
         }
         static member Default =
             {                
@@ -81,6 +84,7 @@ module Table =
                 ModalDeleteButton = None
                 ShowErrors = true
                 TableElementAttributes = TableElementAttributes<'DataType>()
+                ShowTableHeader = true
             }
 
     type Table<'Key, 'DataType> when 'Key : equality  =
@@ -94,7 +98,34 @@ module Table =
             /// CustomSettings
             Settings: TableSettings<'DataType>
         }
-        
+//        member private this.SortFunction =    
+//            match this.DataSource.SortFunction with
+//            | Some (Sort.AscByFunction f) -> Seq.sortBy f
+//            | Some (Sort.DescByFunction f) -> Seq.sortByDescending f
+//            | Some (Sort.AscByColumn i) -> 
+//                match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
+//                | Some f -> Seq.sortBy f
+//                | _ -> id
+//            | Some (Sort.DescByColumn i) -> 
+//                match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
+//                | Some f -> Seq.sortByDescending f
+//                | _ -> id
+//            | None -> id
+        member private this.SortFunctionView =    
+            this.DataSource.SortFunction.View
+            |> View.Map ( function
+                | Some (Sort.AscByFunction f) -> Seq.sortBy f
+                | Some (Sort.DescByFunction f) -> Seq.sortByDescending f
+                | Some (Sort.AscByColumn i) -> 
+                    match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
+                    | Some f -> Seq.sortBy f
+                    | _ -> id
+                | Some (Sort.DescByColumn i) -> 
+                    match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
+                    | Some f -> Seq.sortByDescending f
+                    | _ -> id
+                | None -> id
+            )
         member this.ErrorStatus =
             match this.DataSource.CrudFunctions with
             | DataSource.CRUD.Rpc rpc -> rpc.ErrorStatus
@@ -274,7 +305,7 @@ module Table =
                 theadAttr
                     this.Settings.TableElementAttributes.THead
                     [trAttr this.Settings.TableElementAttributes.THeadRow headerRow] :> Doc
-        member private this.ShowTableFilter (filter: 'DataType -> bool ) (currentItem : Var<'DataType option>) =
+        member private this.ShowTableFilter (filter: 'DataType -> bool ) (currentItem : Var<'DataType option>) sortFunction =
             let idCode = sprintf "%s-edit-%i" this.Id' ( int <| (Math.Random() * 100000.) + 1.)
             let editdeleteColumn t =
                 if this.isEditable || this.isDeletable
@@ -307,6 +338,7 @@ module Table =
                             on.click (fun el ev ->
                                 JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row").RemoveAttr("style") |> ignore
                                 el.SetAttribute ("class", "fruit-active-row")
+                                currentItem.Value <- Some t
                                 match this.DataSource.ItemSelectFunc with
                                 | Some selectF -> selectF t el ev
                                 | None -> ()
@@ -317,18 +349,26 @@ module Table =
                     match this.Settings.ShowDetail with
                     | NoDetail -> Doc.Empty  
                     | AllRows f -> f t :> Doc 
-                    | SelectedRow f -> f t :> Doc      
+                    | SelectedRow f -> 
+                        currentItem.View 
+                        |> Doc.BindView(function 
+                            | Some t' when this.DataSource.IdFunc t' = this.DataSource.IdFunc t -> f t :> Doc
+                            | _ -> Doc.Empty)
                 view
+                |> sortFunction
                 |> Seq.filter filter
                 |> Seq.collect (fun t -> List.toSeq [rowFunction t; detailRowFunction t])
                 |> Seq.toList
             let tableAttributes = attr.id this.Id' :: this.Settings.TableElementAttributes.Table
+            let tableContents =
+                if this.Settings.ShowTableHeader then
+                    this.ShowHeader() :: [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model.Value]
+                else [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model.Value]
             div [
                 (if this.isEditable
                 then (this.EditWindow currentItem idCode).Show()
                 else Doc.Empty)
-                tableAttr tableAttributes
-                    (this.ShowHeader() :: [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model.Value])
+                tableAttr tableAttributes tableContents
             ]
         /// Show all data in a table
         member this.ShowTable () =
@@ -339,9 +379,11 @@ module Table =
             ][
                 (if this.Settings.ShowErrors then this.ErrorBox() else Doc.Empty)
                 this.CreateButtonShow()
-                Doc.BindView ( fun _ ->
-                    this.ShowTableFilter (fun _ -> true) currentItem
-                ) this.DataSource.Model.View
+                (this.DataSource.Model.View, this.SortFunctionView)
+                ||> View.Map2 ( fun a b -> a, b)
+                |> Doc.BindView ( fun (_, sortFunction) ->
+                    this.ShowTableFilter (fun _ -> true) currentItem sortFunction
+                ) 
             ]
         /// Show all data in pages with 1 table each of length pageSize
         member this.ShowTableWithPages pageSize =
@@ -353,15 +395,22 @@ module Table =
             ][
                 (if this.Settings.ShowErrors then this.ErrorBox() else Doc.Empty)
                 this.CreateButtonShow()
-                Doc.BindView ( fun rowdata ->
+                (this.DataSource.Model.View, this.SortFunctionView)
+                ||> View.Map2 ( fun a b -> a, b)
+                |> Doc.BindView ( fun (rowdata, sortFunction) ->
                     let pages =
                         {0 ..  ((Seq.length rowdata - 1)/ pageSize)}
                         |> Seq.map (fun p ->
-                            let dataList = rowdata |> Seq.indexed |> Seq.filter (fun (i,t) -> i / pageSize = p) |> Seq.map (fun (_,t) -> this.DataSource.IdFunc t)
-                            p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.DataSource.IdFunc t) dataList) currentItem :> Doc
+                            let dataList = 
+                                rowdata 
+                                |> sortFunction
+                                |> Seq.indexed 
+                                |> Seq.filter (fun (i,t) -> i / pageSize = p) 
+                                |> Seq.map (fun (_,t) -> this.DataSource.IdFunc t)
+                            p, this.ShowTableFilter (fun t -> Seq.exists (fun d -> d = this.DataSource.IdFunc t) dataList) currentItem sortFunction :> Doc
                         )
                     Pagination.show pages Pagination.PagerPosition.Down
-                ) this.DataSource.Model.View
+                ) 
             ]
         static member Create(keyFunction : 'DataType -> 'Key) =
             {
