@@ -70,6 +70,8 @@ module Table =
 
             /// Show Table header
             ShowTableHeader: bool
+
+            mutable ItemSelectFunc: ('DataType -> Dom.Element -> Dom.Event -> unit) option
         }
         static member Default =
             {                
@@ -85,6 +87,7 @@ module Table =
                 ShowErrors = true
                 TableElementAttributes = TableElementAttributes<'DataType>()
                 ShowTableHeader = true
+                ItemSelectFunc = None
             }
 
     type Table<'Key, 'DataType> when 'Key : equality  =
@@ -128,6 +131,7 @@ module Table =
             )
         member this.ErrorStatus =
             match this.DataSource.CrudFunctions with
+            | DataSource.CRUD.Api api -> api.ErrorStatus
             | DataSource.CRUD.Rpc rpc -> rpc.ErrorStatus
             | DataSource.CRUD.Synchronous syn -> syn.ErrorStatus
         member this.ErrorBox () =
@@ -339,7 +343,7 @@ module Table =
                                 JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row").RemoveAttr("style") |> ignore
                                 el.SetAttribute ("class", "fruit-active-row")
                                 currentItem.Value <- Some t
-                                match this.DataSource.ItemSelectFunc with
+                                match this.Settings.ItemSelectFunc with
                                 | Some selectF -> selectF t el ev
                                 | None -> ()
                             )
@@ -434,13 +438,6 @@ module Table =
                 Table<'Key, 'DataType>.Create(Id,keyFunction,columns,readFunc) with 
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
                 }
-        /// Create a table based on an asynchronous, editable source + a function for when an item is selected
-        static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (itemSelectFunc), (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
-           {
-                
-               Table<'Key, 'DataType>.Create(Id, keyFunction, columns, readFunc) with 
-                    DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, itemSelectFunc, createFunc, updateFunc, deleteFunc)
-            }
         /// Create a table based on a synchronous, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
            {
@@ -448,6 +445,21 @@ module Table =
                     Id' = Id
                     Columns = columns
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
+            }
+        /// Create a table based on an api, editable source
+        static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: string)) =
+           {
+                Id' = Id
+                Columns = columns
+                DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
+                Settings = TableSettings.Default
+            }
+        static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: string), createFunc, updateFunc, deleteFunc) =
+           {
+                Id' = Id
+                Columns = columns
+                DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
+                Settings = TableSettings.Default
             }
 
 
