@@ -286,6 +286,17 @@ module Column =
                 SortFunction = Some (fun t -> Sort.String <| findInMap optionMap.Value (get t) )
                 EditField = Some (Input.Select (get, set, optionMap)) }
         /// This column can be used to represent and change foreign keys
+        static member EditSelectColumn (name, get : ('DataType -> int), set : ('DataType -> int -> 'DataType), optionMap : Var<Map<int, unit -> Doc>>) =
+            let findInMap (map : Map<int, unit -> Doc>) key =
+                    match map.TryFind key with
+                    | Some v -> v
+                    | None -> fun () -> Doc.Empty
+            { Column<'DataType>.empty with
+                Name = name
+                DocList = (fun t -> [Doc.EmbedView <| View.Map (fun map -> findInMap map (get t) <| ()) optionMap.View])
+                SortFunction = None
+                EditField = Some (Input.SelectDoc (get, set, optionMap)) }
+        /// This column can be used to represent and change foreign keys
         static member EditSelectColumn (name, get : ('DataType -> string), set : ('DataType -> string -> 'DataType), optionMap : Var<Map<string,string>>) =
             let findInMap (map : Map<string,string>) key =
                     match map.TryFind key with

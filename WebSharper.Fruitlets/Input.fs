@@ -34,6 +34,7 @@ module Input =
         | Date of GetSetter<'DataType, System.DateTime>
         | Time of GetSetter<'DataType, System.TimeSpan>
         | Select of (('DataType -> int) * ('DataType -> int -> 'DataType) * Var<Map<int,string>>)
+        | SelectDoc of (('DataType -> int) * ('DataType -> int -> 'DataType) * Var<Map<int, unit -> Doc>>)
         | SelectWithString of (('DataType -> string) * ('DataType -> string -> 'DataType) * Var<Map<string,string>>)
         | StringOption of GetSetter<'DataType, string option>
         | TextOption of GetSetter<'DataType, string option>
@@ -137,16 +138,24 @@ module Input =
                     OptionalInput.DateField label' (OptionDateTimeToDate << getter) setter t'
                 | Select (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    let optionsAsDocs = Var.Lens options ( Map.map (fun _ v () -> text v )) (fun m _ -> m)
                     Doc.BindView( fun t ->
-                        Select.SelectInt attrs options s t' |> this.formWrapper label' 
+                        Select.SelectInt attrs optionsAsDocs s t' |> this.formWrapper label' 
+                    ) t'.View
+                | SelectDoc (getter, setter, options) ->
+                    let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    Doc.BindView( fun t ->
+                        Select.SelectDoc attrs options s t' |> this.formWrapper label' 
                     ) t'.View
                 | SelectWithString (getter, setter, options) ->
                     let s = Var.Lens t' (SomeOrDefault (Some << getter) None) (fun t s -> match s with |Some v -> Some <| setter t.Value v | None -> t)
+                    let optionsAsDocs = Var.Lens options ( Map.map (fun _ v () -> text v )) (fun m _ -> m)
                     Doc.BindView( fun t ->
-                        Select.SelectString attrs options s t' |> this.formWrapper label'
+                        Select.SelectString attrs optionsAsDocs s t' |> this.formWrapper label'
                     ) t'.View
                 | SelectOption (getter, setter, options) ->
-                    OptionalInput.SelectField label' getter setter options t'
+                    let optionsAsDocs = Var.Lens options ( Map.map (fun _ v () -> text v )) (fun m _ -> m)
+                    OptionalInput.SelectField label' getter setter optionsAsDocs t'
         member this.show (label') =
             let attrs = fun (_: Var<'DataType option>) ->
                 [
