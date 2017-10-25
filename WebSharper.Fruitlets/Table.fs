@@ -41,6 +41,7 @@ module Table =
             Attributes: 'DataType -> Attr list
             Docs: 'DataType -> Doc list
         }
+    type Validation<'DataType> = 'DataType -> Result.Result<bool, string>
 
     type TableSettings<'DataType> =
         {            
@@ -53,10 +54,12 @@ module Table =
             EditButton: ButtonFromItem<'DataType> option
             DeleteButton: ButtonFromItem<'DataType> option
 
-            // Optional custom modal buttons
-            ModalSaveButton: ButtonFromItem<'DataType> option
+            /// Optional custom modal buttons
+            ModalSaveButton: (ButtonFromItem<'DataType> option)
+            ModalSaveValidation: Validation<'DataType> option
             ModalCancelButton: ButtonStatic option
             ModalDeleteButton: ButtonFromItem<'DataType> option
+            ModalDeleteValidation: Validation<'DataType> option
             
             /// ShowErrors. On by default
             ShowErrors: bool
@@ -82,8 +85,10 @@ module Table =
                 EditButton = None
                 DeleteButton = None
                 ModalSaveButton = None
+                ModalSaveValidation = None
                 ModalCancelButton = None
                 ModalDeleteButton = None
+                ModalDeleteValidation = None
                 ShowErrors = true
                 TableElementAttributes = TableElementAttributes<'DataType>()
                 ShowTableHeader = true
@@ -101,19 +106,6 @@ module Table =
             /// CustomSettings
             Settings: TableSettings<'DataType>
         }
-//        member private this.SortFunction =    
-//            match this.DataSource.SortFunction with
-//            | Some (Sort.AscByFunction f) -> Seq.sortBy f
-//            | Some (Sort.DescByFunction f) -> Seq.sortByDescending f
-//            | Some (Sort.AscByColumn i) -> 
-//                match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
-//                | Some f -> Seq.sortBy f
-//                | _ -> id
-//            | Some (Sort.DescByColumn i) -> 
-//                match Array.tryItem i this.Columns |> Option.bind ( fun column -> column.SortFunction) with
-//                | Some f -> Seq.sortByDescending f
-//                | _ -> id
-//            | None -> id
         member private this.SortFunctionView =    
             this.DataSource.SortFunction.View
             |> View.Map ( function
@@ -134,7 +126,7 @@ module Table =
             | DataSource.CRUD.Api api -> api.ErrorStatus
             | DataSource.CRUD.Rpc rpc -> rpc.ErrorStatus
             | DataSource.CRUD.Synchronous syn -> syn.ErrorStatus
-        member this.ErrorBox () =
+        member private this.ErrorBoxView (errorVar: Var<string>) =
             Doc.BindView( function
                 | "" -> Doc.Empty
                 | msg ->
@@ -145,24 +137,41 @@ module Table =
                             attr.href "#"
                             attr.``class`` "close"
                             attr.``data-`` "dismiss" "alert"
-                            on.click (fun _ _ -> this.ErrorStatus.Value <- "")
+                            on.click (fun _ _ -> errorVar.Value <- "")
                         ][iAttr[attr.``class`` "fa fa-close"][]]
                         text msg
                     ] :> Doc
-            ) this.ErrorStatus.View
+            ) errorVar.View
+        member this.ErrorBox () =
+            this.ErrorBoxView this.ErrorStatus
         member this.isEditable =
             this.Columns
-            |> Array.exists (fun c -> c.EditField.IsSome)
+            |> Array.exists (fun c -> c.EditField.IsSome) 
+            && this.DataSource.UpdateFunc
         member this.isDeletable = this.DataSource.DeleteFunc
-        member private this.SaveButton (t : 'DataType) =
+        member private this.SaveButton windowId (errorVar : Var<string>) (t : 'DataType) =
             let saveButtonAttrs, saveButtonContent =
                 match this.Settings.ModalSaveButton with
                 | Some button -> button.Attributes t, button.Docs t
                 | None -> [attr.``class`` "btn btn-primary fruit-btn fruit-btn-save"], [ text " Save" ]
+            let extraAttributes =
+                match this.Settings.ModalSaveValidation with
+                | None -> 
+                    [   attr.``data-`` "dismiss" "modal"
+                        on.click (fun el ev -> this.DataSource.Update t )]
+                | Some vf -> 
+                    [   on.click (fun el ev -> 
+                            match vf t with
+                            | Result.Success true -> 
+                                this.DataSource.Update t
+                                errorVar.Value <- ""
+                                Modal.CloseModal <| "#" + windowId
+                            | Result.Success false ->
+                                errorVar.Value <- "Invalid data"
+                            | Result.Failure msg->
+                                errorVar.Value <- msg )]
             buttonAttr
-                (saveButtonAttrs @ [
-                    attr.``data-`` "dismiss" "modal"
-                    on.click (fun el ev -> this.DataSource.Update t )]  ) 
+                (saveButtonAttrs @ extraAttributes ) 
                 saveButtonContent :> Doc
         member private this.DeleteButtonShow (t : 'DataType) =
             let modalId = sprintf "confirm-delete-%s-%s" this.Id' <| (this.DataSource.IdFunc t).ToString()
@@ -194,11 +203,11 @@ module Table =
                 confirmDialog()
                 Modal.Button modalId attrs content
             ] :> Doc
-        member private this.EditFooter (item : 'DataType option) =
+        member private this.EditFooter windowId errorVar (item : 'DataType option) =
             match item with
             | Some v ->
                 div[
-                    (if this.DataSource.UpdateFunc then this.SaveButton v else Doc.Empty)
+                    (if this.DataSource.UpdateFunc then this.SaveButton windowId errorVar v else Doc.Empty)
                     this.ModalCancelButtonShow()
                 ] :> Doc
             | None -> Doc.Empty
@@ -222,6 +231,9 @@ module Table =
                 deleteButtonContent 
             
         member this.EditWindow (item : Var<'DataType option>) windowId =
+            
+            let error = Var.Create ""
+
             let editForm () =
                 this.Columns
                 |> Array.filter ( fun column ->
@@ -254,8 +266,11 @@ module Table =
                             | Some t' ->  this.Settings.ModalUpdateHeader t'
                             | None -> ""
                             ) item.View ]
-                Body = editForm ()
-                Footer = Doc.BindView (fun t -> this.EditFooter t) item.View
+                Body = 
+                    [   this.ErrorBoxView error
+                        editForm () :> Doc ] 
+                    |> Doc.Concat
+                Footer = Doc.BindView (fun t -> this.EditFooter windowId error t) item.View
                 Size = Modal.WindowSize.Normal
             }
         member private this.EditButtonShow idCode (currentItem: Var<'DataType option>) (t) =
@@ -391,7 +406,7 @@ module Table =
             ]
         /// Show all data in pages with 1 table each of length pageSize
         member this.ShowTableWithPages pageSize =
-            let currentPage = Var.Create 0
+            // let currentPage = Var.Create 0
             let currentItem = Var.Create None
             this.DataSource.Read()
             divAttr[
