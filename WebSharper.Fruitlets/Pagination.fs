@@ -81,13 +81,17 @@ module Pagination =
                     yield
                         divAttr[
                             attr.classDyn <|
-                                View.Map ( fun page ->
-                                    if page = index
+                                View.Map ( fun pageIndex ->
+                                    if pageIndex = index
                                     then "fruit-page"
                                     else "fruit-page hidden"
                                 ) currentPage.View
                         ][
-                            page
+                            Doc.BindView ( fun pageIndex ->
+                                if pageIndex = index
+                                then page
+                                else Doc.Empty
+                            ) currentPage.View
                         ] :> Doc
             ]
 
