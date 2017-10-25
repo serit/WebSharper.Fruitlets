@@ -1,12 +1,17 @@
 ﻿namespace WebSharper.Fruitlets
 
 open WebSharper
+open WebSharper.JavaScript
 open WebSharper.UI.Next
 open WebSharper.UI.Next.Client
 open WebSharper.UI.Next.Html
 
 [<JavaScript>]
 module Modal =
+
+
+    [<Inline "$($id).modal('hide')">]
+    let CloseModal id = X<unit>
 
 
     let private divClass ``class`` content =

@@ -16,104 +16,45 @@ open Server
 module Client =
 
     open WebSharper.Fruitlets.Table
+    open WebSharper.Fruitlets.Column
     let now = Server.now()
-
-    let BusBody () =
-        aAttr[attr.href "http://ansatt.norgesbuss.no"][text "Proceed to login"]
-
+    
     let Body () =
     
-        let testList = Var.Create <| Map([ ( 1, "a" ); ( 102, "b" ) ])
-
+        let testList = Var.Create <| Map([ ( 1, fun () -> divAttr[attr.style "background: red"][text "a"] :> Doc ); ( 102, fun () -> divAttr[attr.style "background: green"][text "b"] :> Doc ) ])
+        let testList2 = Var.Create <| Map([ ( 1, "a" ); ( 2, "b" ); ( 102, "c" ) ])
+        
         let columns =
             [|
-                ("Title", FieldClass.String, None)
-                ("Rating", FieldClass.Float, None)
-                ("Voters", FieldClass.Int, None)
-                ("Rank", FieldClass.Int |> Optional, None)
-                ("Rank", FieldClass.SelectDyn testList |> Optional, Some <| (fun () -> text "Rank 2"))
+                Column.EditColumn("Title", (fun g -> g.Title), (fun g v -> {g with Title = v}))
+                Column.EditColumn("Rating", (fun g -> g.Rating), (fun g v -> {g with Rating = v}))
+                Column.EditColumn("Voters", (fun g -> g.Voters), (fun g v -> {g with Voters = v}))
+                Column.EditColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}))
+                Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList )
+                Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList2 )
             |]
-            |> Array.map Column<GameObject>.Parse
+            
+        let create () : Async<Result.Result<GameObject, string>> = async{return Result.Success <| GameObject.Create()}
+        let update item : Async<Result.Result<GameObject, string>> = async{return Result.Success <| item}
+        let delete item : Async<Result.Result<GameObject, string>> = async{return Result.Success <| item}
+        let gameTable : Table<string, Server.GameObject> = Table.Create("gameTable", (fun (r: Server.GameObject) -> r.Title), columns, Server.GetGames, create, update, delete)
 
-//        let createFunc () =
-//            let newItem : Server.GameObject = {Title = ""; Rating = 0.; Rank = None; Voters = 0; Year = 0}
-//            async {return newItem}
+        let validation g = 
+            if g.Title = "Test" then 
+                Result.Failure "That is not a real title" 
+            else Result.Success true
 
-        let gameTable : Table<string, Server.GameObject> = Table.Create("gameTable", (fun (r: Server.GameObject) -> r.Title), columns, Server.GetGames)
+        let gameTable' = { gameTable with Settings = {gameTable.Settings with ModalSaveValidation = Some validation}}
 
-        let createFunc () =
-            async {return {Id = 0; Time = System.TimeSpan.FromHours 3.; Date = Some <| System.DateTime.Parse("05-10-2016"); OptionalString = None}}
-
-        let columns =
-            [|
-                ("Time", FieldClass.Time), {Table = Read; Form = ReadWrite}
-                ("Date", FieldClass.Date |> Optional), {Table = Invisible; Form = Read}
-                ("Date", FieldClass.Date |> Optional), {Table = Invisible; Form = ReadWrite}
-                ("OptionalString", (FieldClass.String |> Optional)), {Table = Read; Form = Read}
-                ("OptionalString", (FieldClass.String |> Optional)), {Table = Read; Form = ReadWrite}
-            |] |> Array.map ( fun ((name, _type), permission) ->
-                {Column<RandomType>.Parse (name, _type) with Permission = permission})
-//
-//        let testTable =
-//            Table.Create(
-//                "time",
-//                (fun (t:RandomType) -> t.Id),
-//                columns,
-//                Server.GetTestData,
-//                createFunc,
-//                Server.UpdateTestData,
-//                Server.DeleteTestData
-//                )
-
-        let newName = Var.Create ""
-        let loaded = ref false
         div [
-              h2 [text "Test"]
-              //testTable.ShowTable()
               h2 [text "Games"]
-              gameTable.ShowTableWithPages 5
-
-//              iframeAttr[
-//                // attr.src "/ansatt" //"about:blank" 
-//                attr.src "http://ansatt.norgesbuss.no"
-//                attr.id "ansatt-iframe"
-//                attr.style "width:500px;height:800px;"
-//                ][
-//                ]
-//                on.load(fun el ev ->
-//                    if not !loaded then
-//                        el.AppendChild(
-//                            (divAttr[attr.id "ansatt-iframe-div"][]).Dom
-//                        )|> ignore
-//                        JQuery.JQuery("#ansatt-iframe div#ansatt-iframe-div").Html("<object data=\"http://ansatt.norgesbuss.no\">") |> ignore
-//                    loaded := true
-//                    )
-//                on.load(fun el ev ->
-//                    JS.Window.Location.Assign "http://ansatt.norgesbuss.no"
-//                )
-//                attr.id "ansatt-iframe"
-//                on.load(fun el ev ->
-//                    //JS.Window.Location.Assign "http://ansatt.norgesbuss.no"
-//                    if not !loaded then
-//                        JS.Document.GetElementById("ansatt-iframe").SetAttribute("src", "http://ansatt.norgesbuss.no")
-//                    loaded := true
-//                )
-//              divAttr[
-//                attr.id "ansatt-iframe-div"
-//                
-//                on.afterRender(fun el ->
-//                    if not !loaded then
-//                        JQuery.JQuery("div#ansatt-iframe-div").Load("//ansatt.norgesbuss.no") |> ignore
-//                    loaded := true
-//                    )
-//              
-//              ][]
+              gameTable'.ShowTableWithPages 5
         ]
 
 type Endpoint =
     |[<EndPoint "/">] Home
     |[<EndPoint "/form">] Form
-    |[<EndPoint "/ansatt">] Buss
+    |[<EndPoint "/books">] Books
 
 module Site =
 
@@ -134,8 +75,8 @@ module Site =
                     IndexTemplate.Doc(
                         body = [div [ client <@ FormClient.FormPage() @>]]
                      ))
-            | Buss ->
+            | Books ->
                 Content.Page(
                     IndexTemplate.Doc(
-                        body = [div [ client <@ Client.BusBody() @>]]
+                        body = [div [ client <@ BooksAPI.BookPage() @>]]
                      ))

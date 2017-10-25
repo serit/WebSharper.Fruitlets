@@ -34,12 +34,12 @@ Form validation can be asynchronous and error message can be a function
 ## Components
 This library is built with an emphasis on data management and is focused on generating layouts that integrate CRUD operations on existing datastructures.
 
-## Table
+## [Table](docs/Table.md)
 
 The Table module is currently the most important module, and eases representing existing data in a html-table. 
 If create, update or delete functions are specified, corresponding buttons and forms are automatically added to the table.
 
-## Form
+## [Form](docs/Form.md)
 
 The form module creates a group of input fields around lenses to a Var element.
 The available input fields are:

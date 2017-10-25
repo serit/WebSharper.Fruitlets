@@ -184,7 +184,7 @@ module Form =
                             else
                                match field.HasError with
                                | Some true ->
-                                    let attrs =
+                                    let attrs = fun (_: Var<'DataType option>) ->
                                         [
                                             attr.id field.Label
                                             attr.name field.Label
@@ -192,7 +192,7 @@ module Form =
                                         ]
                                     field.Input.show (field.Label, attrs, field.Input.errorFormWrapper field.Label) t
                                | Some false ->
-                                    let attrs =
+                                    let attrs = fun (_: Var<'DataType option>) ->
                                         [
                                             attr.name field.Label
                                             attr.``class`` "form-control has-success fruit-form-control fruit-has-success"

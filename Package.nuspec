@@ -2,22 +2,22 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.3.0</version>
+    <version>0.5.0</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Form validation optionally with reCaptcha</releaseNotes>
+    <releaseNotes>Updates in modal window validation, sort functions and pagination view</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>
-    <group targetFramework="net40">
-        <dependency id="FSharp.Core" version="3.1.2.1"/>
-        <dependency id="WebSharper" version="3.6.10"/>
-        <dependency id="WebSharper.UI.Next" version="3.6"/>
-    </group>    
+      <group targetFramework="net40">
+          <dependency id="FSharp.Core" version="3.1.2.1"/>
+          <dependency id="WebSharper" version="3.6.10"/>
+          <dependency id="WebSharper.UI.Next" version="3.6"/>
+      </group>    
     </dependencies>
   </metadata>
   <files>

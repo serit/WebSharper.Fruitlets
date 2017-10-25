@@ -41,6 +41,7 @@
   <ItemGroup>
     <Compile Include="Remoting.fs" />
     <Compile Include="Form.fs" />
+    <Compile Include="BooksAPI.fs" />
     <Compile Include="Client.fs" />
     <Content Include="index.html" />
     <Content Include="Web.config" />

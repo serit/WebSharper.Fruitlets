@@ -45,13 +45,13 @@ module Server =
 
     [<JavaScript>]
     type GameObject =
-        { Title : string; Rating : float; Rank: int option; Voters: int; Year: int}
+        { Title : string; Rating : float; Rank: int; Voters: int; Year: int}
         static member Create () =
-            { Title = ""; Rating = 0.0; Rank = None; Voters = 0; Year = 0}
+            { Title = ""; Rating = 0.0; Rank = 0; Voters = 0; Year = 0}
         static member Create (title:string) =
             { GameObject.Create() with Title = title}
         static member Create (title:string, rating:float, rank:int,voters:int, year) =
-            { Title = title; Rating = rating; Rank = Some rank; Voters = voters; Year = year}
+            { Title = title; Rating = rating; Rank = rank; Voters = voters; Year = year}
 
 
     [<Rpc>]
