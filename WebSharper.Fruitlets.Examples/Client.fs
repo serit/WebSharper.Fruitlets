@@ -33,12 +33,22 @@ module Client =
                 Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList )
                 Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList2 )
             |]
+            
+        let create () : Async<Result.Result<GameObject, string>> = async{return Result.Success <| GameObject.Create()}
+        let update item : Async<Result.Result<GameObject, string>> = async{return Result.Success <| item}
+        let delete item : Async<Result.Result<GameObject, string>> = async{return Result.Success <| item}
+        let gameTable : Table<string, Server.GameObject> = Table.Create("gameTable", (fun (r: Server.GameObject) -> r.Title), columns, Server.GetGames, create, update, delete)
 
-        let gameTable : Table<string, Server.GameObject> = Table.Create("gameTable", (fun (r: Server.GameObject) -> r.Title), columns, Server.GetGames)
+        let validation g = 
+            if g.Title = "Test" then 
+                Result.Failure "That is not a real title" 
+            else Result.Success true
+
+        let gameTable' = { gameTable with Settings = {gameTable.Settings with ModalSaveValidation = Some validation}}
 
         div [
               h2 [text "Games"]
-              gameTable.ShowTableWithPages 5
+              gameTable'.ShowTableWithPages 5
         ]
 
 type Endpoint =
