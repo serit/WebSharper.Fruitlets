@@ -103,18 +103,20 @@ module Column =
             | Some sortFunc ->
                 thAttr([
                         on.click ( fun _ _ ->
-                            ds.SortFunction.Value <- 
-                                ds.SortFunction.Value 
-                                |> Option.bind (fun sortF -> 
-                                    Some <| sortF.FlipColumn index)
+                            match ds.SortFunction.Value with
+                            | Some (Sort.AscByColumn index') when index' = index ->
+                                ds.SortFunction.Value <-  Some <| Sort.DescByColumn index
+                            | _ ->
+                                ds.SortFunction.Value <-  Some <| Sort.AscByColumn index
                         )
                 ] )[
                     headerField ()
                     iAttr[
                         attr.style "color: #aaa;"
                         attr.classDyn <| View.Map (function
-                            | Some (sortF: Sort.SortFunction<'DataType>) -> sortF.FAClass index
-                            | None -> "fa fa-fw fa-sort") ds.SortFunction.View
+                            | Some (Sort.AscByColumn index') -> (Sort.AscByColumn index').FAClass index
+                            | Some (Sort.DescByColumn index') -> (Sort.DescByColumn index').FAClass index
+                            | _ -> "fa fa-fw fa-sort") ds.SortFunction.View
                     ][] :> Doc
                 ] :> Doc
             | None ->
