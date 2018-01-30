@@ -29,8 +29,11 @@
     <Name>WebSharper.Fruitlets</Name>
     <RootNamespace>WebSharper.Fruitlets</RootNamespace>
     <AssemblyName>WebSharper.Fruitlets</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DocumentationFile>bin/Release\WebSharper.Fruitlets.XML</DocumentationFile>
   </PropertyGroup>
   <!-- F# targets -->
   <Choose>

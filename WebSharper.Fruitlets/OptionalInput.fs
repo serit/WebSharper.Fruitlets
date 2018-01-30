@@ -15,16 +15,19 @@ module OptionalInput =
         | None -> def
         
     let private OptionToBool (t : 'T option) = t.IsSome
-
-    /// Input where value is 'T option
+    
+    /// <summary>
+    /// Input field where value is 'T option
+    /// </summary>
     type OptionalInputType<'DataType, 'ValueType> =
         {
             Label: string
+            WrapperAttrs: Attr list
             Getter: 'DataType -> 'ValueType option
             Setter: 'DataType -> 'ValueType option -> 'DataType
         }
         member this.formWrapper content =
-            divAttr[ attr.``class`` "form-group fruit-form-group"][
+            divAttr([ attr.``class`` "form-group fruit-form-group"] @ this.WrapperAttrs)[
                 labelAttr[attr.``for`` this.Label][text this.Label]
                 content
             ] :> Doc
@@ -84,28 +87,30 @@ module OptionalInput =
 
 
     let StringField label' getter setter =
-        {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.Input
+        {Label = label'; WrapperAttrs = []; Getter = getter; Setter = setter}.GenericField "" Doc.Input
     let TextField label' getter setter =
-        {Label = label'; Getter = getter; Setter = setter}.GenericField "" Doc.InputArea
+        {Label = label'; WrapperAttrs = []; Getter = getter; Setter = setter}.GenericField "" Doc.InputArea
     let IntField label' getter setter =
-        {Label = label'; Getter = getter; Setter = setter}.GenericField 0 Doc.IntInputUnchecked
+        {Label = label'; WrapperAttrs = []; Getter = getter; Setter = setter}.GenericField 0 Doc.IntInputUnchecked
     let FloatField label' getter setter =
-        {Label = label'; Getter = getter; Setter = setter}.GenericField 0. Doc.FloatInputUnchecked
-    let TimeField label' getter setter =
-        let TimeInput attrs timeLens = Time.Timepicker timeLens attrs label'
-        {Label = label'; Getter = getter; Setter = setter}.GenericField 0L TimeInput
-    let DateField label' getter setter =
+        {Label = label'; WrapperAttrs = []; Getter = getter; Setter = setter}.GenericField 0. Doc.FloatInputUnchecked
+    let TimeField label' wrapperAttrs getter setter =
+        let TimeInput attrs timeLens = Time.Timepicker timeLens attrs [] ""
+        {Label = label'; WrapperAttrs = wrapperAttrs; Getter = getter; Setter = setter}.GenericField 0L TimeInput
+    let DateField label' wrapperAttrs getter setter =
         let DateToDateTime (t : Date option) =
             match t with
-            | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString())
+            | Some t' -> Some <| System.DateTime.Parse(t'.ToDateString()).AddMinutes(- t'.GetTimezoneOffset())
             | None -> None
         let setter' = (fun (t: 'DataType) s -> setter t <| DateToDateTime s)
-        let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs label'
-        {Label = label'; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
+        let DatePicker attrs dateLens = Time.Datepicker'' dateLens attrs [] ""
+        {Label = label'; WrapperAttrs = wrapperAttrs; Getter = getter; Setter = setter'}.GenericField (new Date()) DatePicker
+    /// <remarks>
     /// Under construction: Logic of current value should be fixed: Reset when t' is updated: partially done
+    /// </remarks>    
     let SelectField label' (getter: 'DataType -> int option) setter options =
 
-        let field = {Label = label'; Getter = getter; Setter = setter}
+        let field = {Label = label'; WrapperAttrs = []; Getter = getter; Setter = setter}
 
         let optionToValueGetter = (fun t -> (field.Getter t))
         fun (t': Var<'DataType option>) ->

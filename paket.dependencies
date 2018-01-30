@@ -8,7 +8,7 @@ source https://www.nuget.org/api/v2
 
 nuget IntelliFactory.Core
 nuget IntelliFactory.Xml 
-nuget WebSharper >= 3.6.10.230
+nuget WebSharper < 4
 nuget WebSharper.UI.Next
 nuget Mono.Cecil
 nuget FSharp.Data

@@ -2,15 +2,15 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.5.0</version>
+    <version>0.6.1</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>
     <iconUrl>http://tromso.serit.no/~/media/serit/logoer/serit_itpartner_troms%C3%B8.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A library of commonly used UI components used by Serit IT Partner Tromsø</description>
-    <releaseNotes>Updates in modal window validation, sort functions and pagination view</releaseNotes>
-    <copyright>Copyright 2016</copyright>
+    <releaseNotes>Fix time offset for client</releaseNotes>
+    <copyright>Copyright 2017</copyright>
     <tags>WebSharper UI.Next</tags>    
     <dependencies>
       <group targetFramework="net40">
@@ -22,5 +22,6 @@
   </metadata>
   <files>
       <file src="WebSharper.Fruitlets\bin\Release\WebSharper.Fruitlets.dll" target="lib\NET40" />
+      <file src="WebSharper.Fruitlets\bin\Release\WebSharper.Fruitlets.XML" target="lib\NET40" />
   </files>
 </package>

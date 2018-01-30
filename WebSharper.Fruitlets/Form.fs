@@ -89,14 +89,16 @@ module Form =
     type FormSubmitFunction<'DataType> =
         | Sync of ('DataType option -> Dom.Element -> Dom.MouseEvent -> bool)
         | Async of ('DataType option -> Dom.Element -> Dom.MouseEvent -> Async<Result.Result<bool,string>>)
-
+    
+    type ButtonText = string
+    type ReCaptchaKey = string
+    /// <summary>  
     /// the simple type will generate a simple submit button, 
     /// while the recapctha requires a recaptcha key
     /// which can be generated here: https://www.google.com/recaptcha/admin
     /// the recaptcha script is loaded in the code
     /// It is assumed that there is at most one recaptcha button per page
-    type ButtonText = string
-    type ReCaptchaKey = string
+    /// </summary>  
     type SubmitType =
         | Simple of ButtonText
         | ReCaptcha of ReCaptchaKey * ButtonText

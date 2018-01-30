@@ -8,8 +8,8 @@ open WebSharper.UI.Next.Html
 
 [<JavaScript>]
 module Time =
-    let private formWrapper label' content =
-        divAttr[ attr.``class`` "form-group fruit-form-group"][
+    let private formWrapper label' attrs content =
+        divAttr([ attr.``class`` "form-group fruit-form-group"] @ attrs)[
             labelAttr[attr.``for`` label'][text label']
             content
         ] :> Doc
@@ -25,7 +25,7 @@ module Time =
         let t = new Date(0,0,0, hourFunc time, minFunc time)
         sprintf "%02i:%02i" (t.GetHours()) (t.GetMinutes())
 
-    let Timepicker (time: IRef<int64>) attrs label' =
+    let Timepicker (time: IRef<int64>) attrs wrapperAttrs label' =
 
         // in future this should take into account 12 or 24-hour clock (extra select field :AM/PM)
         let hour = 60L * 60L * 1000L * 10000L
@@ -44,10 +44,10 @@ module Time =
         let minuteList = [0..59]
 
         divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-timepicker"][
-            Doc.Select attrs showT hourList hourLens |> formWrapper (label' + " ")
-            Doc.Select attrs showT minuteList minLens |> formWrapper (":")
+            Doc.Select attrs showT hourList hourLens |> formWrapper (label' + " ") wrapperAttrs 
+            Doc.Select attrs showT minuteList minLens |> formWrapper ":" wrapperAttrs 
         ]  :> Doc
-    let Datepicker (date: IRef<Date>) attrs label' =
+    let Datepicker (date: IRef<Date>) attrs wrapperAttrs label' =
         let yearLens = Var.Lens date (fun d -> d.GetFullYear()) (fun d v -> d.SetFullYear(v); d)
         let yearList = [2000..2050]
         let monthLens = Var.Lens date (fun d -> d.GetMonth()) (fun d v -> d.SetMonth(v); d)
@@ -68,11 +68,11 @@ module Time =
         let dayLens = Var.Lens date (fun d -> d.GetDate()) (fun d v -> d.SetDate(v); d)
         let dayList = [0..31]
         divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
-            Doc.Select attrs string yearList yearLens |> formWrapper (label')
-            Doc.Select attrs monthShow monthList monthLens |> formWrapper " - "
-            Doc.Select attrs string dayList dayLens |> formWrapper " - "
+            Doc.Select attrs string yearList yearLens |> formWrapper label' wrapperAttrs 
+            Doc.Select attrs monthShow monthList monthLens |> formWrapper " - " wrapperAttrs 
+            Doc.Select attrs string dayList dayLens |> formWrapper " - " wrapperAttrs 
         ]  :> Doc
-    let Datepicker' (date: IRef<Date>) attrs label' =
+    let Datepicker' (date: IRef<Date>) attrs wrapperAttrs label' =
         let yearLens = Var.Lens date (fun d -> d.GetFullYear()) (fun d v -> d.SetFullYear(v); d)
         let yearList = [2000..2050]
         let monthLens = Var.Lens date (fun d -> d.GetMonth()) (fun d v -> d.SetMonth(v); d)
@@ -121,15 +121,15 @@ module Time =
                             text "test"
 
                             divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
-                                Doc.Select [on.click(fun el ev -> ev.StopPropagation())] string yearList yearLens |> formWrapper (label')
-                                Doc.Select attrs monthShow monthList monthLens |> formWrapper " - "
-                                Doc.Select attrs string dayList dayLens |> formWrapper " - "
+                                Doc.Select [on.click(fun el ev -> ev.StopPropagation())] string yearList yearLens |> formWrapper label' wrapperAttrs 
+                                Doc.Select attrs monthShow monthList monthLens |> formWrapper " - " wrapperAttrs 
+                                Doc.Select attrs string dayList dayLens |> formWrapper " - " wrapperAttrs 
                             ]
 
                         ]
                 ]
         ) date.View
-    let Datepicker'' (date: IRef<Date>) attrs label' =
+    let Datepicker'' (date: IRef<Date>) attrs wrapperAttrs label' =
         let toDateString (d: Date) = sprintf "%i-%02i-%02i" <| d.GetFullYear() <| (d.GetMonth() + 1) <| d.GetDate()
 
         // the default input value for the HTML5 datepciker is rfc3339: (https://tools.ietf.org/html/rfc3339#section-5.6)
@@ -144,8 +144,6 @@ module Time =
                     new Date()
             //sprintf "%i-%i-%i" <| d.GetFullYear() <| d.GetMonth() <| d.GetDate()
         let dateLens =  Var.Lens date (toDateString) (fun d v -> fromDateString v)// d.SetDate(v); d)
-        divAttr[attr.``class`` "form-inline fruit-form-inline fruit-form-datepicker"][
-            Doc.Input (attrs @ [attr.``type`` "date"; attr.valueDyn (dateLens.View)] ) dateLens |> formWrapper (label')
-        ]  :> Doc
+        Doc.Input (attrs @ [attr.``type`` "date"; attr.valueDyn (dateLens.View)] ) dateLens |> formWrapper label' wrapperAttrs
 
 
