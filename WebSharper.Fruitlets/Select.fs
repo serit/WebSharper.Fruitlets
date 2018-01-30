@@ -33,7 +33,7 @@ module Select =
                     | _ -> this.Default
                 selectAttr
                     ([
-                        attr.``class`` "fruit-form-select"
+                        attr.``class`` "fruit-form-select form-control"
                         on.change (fun el _ -> this.SelectedLens.Set << Some << this.TransformToKeyFromString <| getSelected el)
                         on.afterRender (fun el ->
                             try
@@ -86,7 +86,7 @@ module Select =
                     [
                         buttonAttr
                             [
-                                attr.``class`` "btn btn-primary dropdown-toggle"
+                                attr.``class`` "btn dropdown-toggle"
                                 attr.``type`` "button"
                                 attr.``data-`` "toggle" "dropdown"
                             ]

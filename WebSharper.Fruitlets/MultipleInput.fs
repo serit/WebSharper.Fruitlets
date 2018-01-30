@@ -32,9 +32,11 @@ module MultipleInput =
 
         //varSeq'.View |> View.Sequence |> View.Sink ()
         varSeq'
-
+        
+    /// <summary>    
     /// Input that takes a seq<'Type> as input
     /// Incomplete: should have +/- buttons
+    /// </summary>    
     type MultipleInputType<'DataType, 'ValueType> =
         {
             Label: string

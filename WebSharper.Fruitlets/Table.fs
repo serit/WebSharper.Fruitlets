@@ -36,42 +36,58 @@ module Table =
             Attributes:  Attr list
             Docs:  Doc list
         }
+
     type ButtonFromItem<'DataType> =
         {
             Attributes: 'DataType -> Attr list
             Docs: 'DataType -> Doc list
         }
+
     type Validation<'DataType> = 'DataType -> Result.Result<bool, string>
 
     type TableSettings<'DataType> =
         {            
+            /// <summary>
             /// Whether a detail wil be shown for no rows, all rows or the selected row
             /// The row detail will be show in a separate row underneath the main one
+            /// </summary>
             ShowDetail: TableRowDetail<'DataType>
-
-            /// Optional custom buttons
+               
+            /// <summary>
+            /// Optional custom buttons   
+            /// </summary>
             AddButton: ButtonStatic option
             EditButton: ButtonFromItem<'DataType> option
             DeleteButton: ButtonFromItem<'DataType> option
-
-            /// Optional custom modal buttons
+               
+            /// <summary>
+            /// Optional custom modal buttons   
+            /// </summary>
             ModalSaveButton: (ButtonFromItem<'DataType> option)
             ModalSaveValidation: Validation<'DataType> option
             ModalCancelButton: ButtonStatic option
             ModalDeleteButton: ButtonFromItem<'DataType> option
             ModalDeleteValidation: Validation<'DataType> option
-            
-            /// ShowErrors. On by default
+               
+            /// <summary>
+            /// ShowErrors. On by default   
+            /// </summary>
             ShowErrors: bool
-
-            /// Set attributes for different elements of the table
+               
+            /// <summary>
+            /// Set attributes for different elements of the table   
+            /// </summary>
             TableElementAttributes: TableElementAttributes<'DataType>
-
-            /// Shown as description in modal header
+               
+            /// <summary>
+            /// Shown as description in modal header   
+            /// </summary>
             ModalUpdateHeader: 'DataType -> string
             ModalDeleteHeader: 'DataType -> string
-
-            /// Show Table header
+               
+            /// <summary>
+            /// Show Table header   
+            /// </summary>
             ShowTableHeader: bool
 
             mutable ItemSelectFunc: ('DataType -> Dom.Element -> Dom.Event -> unit) option
@@ -96,14 +112,22 @@ module Table =
             }
 
     type Table<'Key, 'DataType> when 'Key : equality  =
-        {
-            /// the id of the table    
-            Id': string
-            /// The datasource for the table rows
-            DataSource: DataSource.DS<'Key,'DataType>
-            /// The Column type generates a column from type 'DataType
-            Columns: Column<'DataType> []
-            /// CustomSettings
+        {   
+            /// <summary>
+            /// the id of the table       
+            /// </summary>
+            Id': string   
+            /// <summary>
+            /// The datasource for the table rows   
+            /// </summary>
+            DataSource: DataSource.DS<'Key,'DataType>   
+            /// <summary>
+            /// The Column type generates a column from type 'DataType   
+            /// </summary>
+            Columns: Column<'DataType> []   
+            /// <summary>
+            /// CustomSettings   
+            /// </summary>
             Settings: TableSettings<'DataType>
         }
         member private this.SortFunctionView =    
@@ -243,16 +267,14 @@ module Table =
                     match (column.EditField, column.Permission.Form, column.EditFieldAttrList) with
                     | None, _, _
                     | _, Permission.Read, _ -> (Input.Disabled column.DocList).show column.Name item
-                    | Some editField, _, None -> editField.show column.Name item
-                    | Some editField, _, Some attrList -> 
-                        // assuming attributes are pretty stable
-                        let stableAttrList = fun t ->
+                    | Some (Column.InputField editField), _, None -> editField.show column.Name item
+                    | Some (Column.InputField editField), _, Some attrList -> 
+                        let attrListView = fun (t:Var<'DataType option>) ->
                             [
-                                attr.id column.Name
-                                attr.name column.Name
-                                attr.``class`` "form-control fruit-form-control"
+                                attr.``dataDyn-`` "represents" (View.Map (function Some t' -> sprintf "%A" <| this.DataSource.IdFunc t' | None -> "empty") t.View)
                             ] @ attrList t
-                        editField.show(column.Name, stableAttrList, editField.formWrapper column.Name) item
+                        editField.show(column.Name, attrListView, editField.formWrapper column.Name) item
+                    | Some (Column.DocField docField), _, _ -> docField item
                 )
                 |> Array.toList
                 |> formAttr [attr.``class`` "fruit-form"]
@@ -310,7 +332,7 @@ module Table =
             // add an extra column with an edit button
             let extracol = 
                 if this.isEditable || this.isDeletable then 
-                    [| tdAttr[ attr.``class`` "fruit-edit-btn-column" ][] :> Doc |] 
+                    [| thAttr[ attr.``class`` "fruit-edit-btn-column" ][] :> Doc |] 
                 else [||]
 
             this.Columns
@@ -343,53 +365,60 @@ module Table =
                     ]
                 else List.empty
                 |> List.toArray
-            let rows view =
-                let rowFunction t =
+            let rows (view: ListModel<'Key, 'DataType>) =
+                let rowFunction (t: IRef<'DataType>) =
                     let row =
                         this.Columns
                         |> Array.filter ( fun column ->
                             column.Permission.Table <> Permission.Invisible )
                         |> Array.map ( fun column ->
-                            column.showRow t :> Doc )
-                        |> flip Array.append ( editdeleteColumn t )
+                            column.showRow t )
+                        |> flip Array.append (editdeleteColumn t.Value)
                     let trAttributes =
-                        this.Settings.TableElementAttributes.TR t @ [
+                        this.Settings.TableElementAttributes.TR t.Value @ [
                             on.click (fun el ev ->
-                                JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row").RemoveAttr("style") |> ignore
+                                JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row") |> ignore
                                 el.SetAttribute ("class", "fruit-active-row")
-                                currentItem.Value <- Some t
+                                currentItem.Value <- Some t.Value
                                 match this.Settings.ItemSelectFunc with
-                                | Some selectF -> selectF t el ev
-                                | None -> ()
+                                | Some selectF -> selectF t.Value el ev
+                                | _ -> ()
                             )
                         ]
                     trAttr trAttributes row :> Doc
-                let detailRowFunction t =
+                let detailRowFunction (t: IRef<'DataType>) =
                     match this.Settings.ShowDetail with
                     | NoDetail -> Doc.Empty  
-                    | AllRows f -> f t :> Doc 
+                    | AllRows f -> Doc.BindView f t.View
                     | SelectedRow f -> 
                         currentItem.View 
                         |> Doc.BindView(function 
-                            | Some t' when this.DataSource.IdFunc t' = this.DataSource.IdFunc t -> f t :> Doc
+                            | Some t' when this.DataSource.IdFunc t' = this.DataSource.IdFunc t.Value -> Doc.BindView f t.View
                             | _ -> Doc.Empty)
-                view
+                
+                view.Value
                 |> sortFunction
                 |> Seq.filter filter
-                |> Seq.collect (fun t -> List.toSeq [rowFunction t; detailRowFunction t])
+                |> Seq.collect (fun t -> 
+                        let key = this.DataSource.IdFunc t
+                        let tLens = view.Lens key
+                        List.toSeq [rowFunction tLens; detailRowFunction tLens])
                 |> Seq.toList
+
             let tableAttributes = attr.id this.Id' :: this.Settings.TableElementAttributes.Table
             let tableContents =
                 if this.Settings.ShowTableHeader then
-                    this.ShowHeader() :: [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model.Value]
-                else [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model.Value]
+                    this.ShowHeader() :: [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
+                else [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
             div [
                 (if this.isEditable
                 then (this.EditWindow currentItem idCode).Show()
                 else Doc.Empty)
                 tableAttr tableAttributes tableContents
-            ]
-        /// Show all data in a table
+            ]   
+        /// <summary>
+        /// Show all data in a table   
+        /// </summary>
         member this.ShowTable () =
             let currentItem = Var.Create None
             this.DataSource.Read()
@@ -403,8 +432,10 @@ module Table =
                 |> Doc.BindView ( fun (_, sortFunction) ->
                     this.ShowTableFilter (fun _ -> true) currentItem sortFunction
                 ) 
-            ]
-        /// Show all data in pages with 1 table each of length pageSize
+            ]  
+        /// <summary>
+        /// Show all data in pages with 1 table each of length pageSize  
+        /// </summary>
         member this.ShowTableWithPages pageSize =
             // let currentPage = Var.Create 0
             let currentItem = Var.Create None
@@ -437,8 +468,10 @@ module Table =
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, (fun () -> async{return Array.empty}))
                 Columns = [||]
                 Settings = TableSettings.Default
-            }
-        /// Create a read only table based on an asynchronous source
+            }  
+        /// <summary>
+        /// Create a read only table based on an asynchronous source  
+        /// </summary>
         static member Create (Id, (keyFunction: ('DataType -> 'Key)), columns, (readFunc: unit -> Async<array<'DataType>>)) =
            {
                Table<'Key, 'DataType>.Create(keyFunction) with 
@@ -446,22 +479,28 @@ module Table =
                     Columns = columns
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
             }
-            
-        /// Create a table based on an asynchronous, editable source
+              
+        /// <summary>
+        /// Create a table based on an asynchronous, editable source  
+        /// </summary>
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
             {
                 Table<'Key, 'DataType>.Create(Id,keyFunction,columns,readFunc) with 
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
-                }
-        /// Create a table based on a synchronous, editable source
+                }  
+        /// <summary>
+        /// Create a table based on a synchronous, editable source  
+        /// </summary>
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
            {
                Table<'Key, 'DataType>.Create(keyFunction) with 
                     Id' = Id
                     Columns = columns
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
-            }
-        /// Create a table based on an api, editable source
+            }  
+        /// <summary>
+        /// Create a table based on an api, editable source  
+        /// </summary>
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: string)) =
            {
                 Id' = Id
