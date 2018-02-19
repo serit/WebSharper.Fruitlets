@@ -28,7 +28,7 @@ module Client =
         let columns =
             [|
                 {Column.EditColumn("In top 10", (fun g -> g.Rank <= 10), (fun g v -> g)) with 
-                    EditField = Some <| Input.Bool((fun g -> g.Rank <= 10), (fun g v -> g))
+                    EditField = Some << InputField <| Input.Bool((fun g -> g.Rank <= 10), (fun g v -> g))
                     Permission = {Table = ReadWrite; Form = Invisible}}
                 {Column.EditColumn("Title", (fun g -> g.Title), (fun g v -> {g with Title = v})) with 
                     EditFieldAttrList = 
@@ -47,7 +47,15 @@ module Client =
                 Column.EditColumn("Rating", (fun g -> g.Rating), (fun g v -> {g with Rating = v}))
                 Column.EditColumn("Voters", (fun g -> g.Voters), (fun g v -> {g with Voters = v}))
                 Column.EditColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}))
-                Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList )
+                {Column.EditSelectColumn("Rank", (fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList ) with
+                    AttrList = Some <| fun _ -> [attr.``class`` "bg-danger"]
+                    DocList = fun item ->
+                        [
+                            Input.SelectDoc((fun g -> g.Rank), (fun g v -> {g with Rank = v}), testList).show "Rank:" <| Var.Create (Some item)
+                        ]
+                        
+                
+                }
                 Column.EditSelectColumn("Rank", (fun g -> Some g.Rank), (fun g -> function Some v -> {g with Rank = v} | None -> {g with Rank = 0}), testList2 )
             |]
             
@@ -65,7 +73,7 @@ module Client =
 
         div [
               h2 [text "Games"]
-              gameTable'.ShowTableWithPages 5
+              gameTable'.ShowTableWithPages 50
         ]
 
 type Endpoint =

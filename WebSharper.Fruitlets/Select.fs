@@ -121,7 +121,8 @@ module Select =
 //                                            else
 //                                                Attr.Empty)
                                         ] [
-                                            aAttr[attr.href "#"][value ()]] :> Doc
+                                            aAttr[attr.href "javascript:return false;"][value ()]
+                                            ] :> Doc
                                     )
                             ) :> Doc
                     ]

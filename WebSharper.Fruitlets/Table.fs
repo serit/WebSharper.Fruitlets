@@ -65,7 +65,7 @@ module Table =
             /// </summary>
             ModalSaveButton: (ButtonFromItem<'DataType> option)
             ModalSaveValidation: Validation<'DataType> option
-            ModalCancelButton: ButtonStatic option
+            ModalCancelButton: ButtonFromItem<'DataType> option
             ModalDeleteButton: ButtonFromItem<'DataType> option
             ModalDeleteValidation: Validation<'DataType> option
                
@@ -211,7 +211,7 @@ module Table =
                         Footer =
                             div[
                                 this.ModalDeleteButtonShow t
-                                this.ModalCancelButtonShow()
+                                this.ModalCancelButtonShow t
                             ]
                         Size = Modal.Small
                         Id = modalId
@@ -232,13 +232,13 @@ module Table =
             | Some v ->
                 div[
                     (if this.DataSource.UpdateFunc then this.SaveButton windowId errorVar v else Doc.Empty)
-                    this.ModalCancelButtonShow()
+                    this.ModalCancelButtonShow v
                 ] :> Doc
             | None -> Doc.Empty
-        member private this.ModalCancelButtonShow () =
+        member private this.ModalCancelButtonShow (item) =
             let cancelButtonAttrs, cancelButtonContent =
                 match this.Settings.ModalCancelButton with
-                | Some button -> button.Attributes, button.Docs
+                | Some button -> button.Attributes item, button.Docs item
                 | None -> [attr.``class`` "btn btn-secondary fruit-btn fruit-btn-cancel"], [ iAttr[ attr.``class`` "fa fa-close"][]; text " Close" ]
             buttonAttr(attr.``data-`` "dismiss" "modal" :: cancelButtonAttrs) cancelButtonContent 
         member private this.ModalDeleteButtonShow (t) =
@@ -378,7 +378,7 @@ module Table =
                         this.Settings.TableElementAttributes.TR t.Value @ [
                             on.click (fun el ev ->
                                 JQuery.JQuery("#" + this.Id' + " tr").RemoveClass("fruit-active-row") |> ignore
-                                el.SetAttribute ("class", "fruit-active-row")
+                                JQuery.JQuery.Of(el).AddClass ("fruit-active-row") |> ignore
                                 currentItem.Value <- Some t.Value
                                 match this.Settings.ItemSelectFunc with
                                 | Some selectF -> selectF t.Value el ev
@@ -396,6 +396,26 @@ module Table =
                             | Some t' when this.DataSource.IdFunc t' = this.DataSource.IdFunc t.Value -> Doc.BindView f t.View
                             | _ -> Doc.Empty)
                 
+                // get a new index based on the sortfunction, then map that function to the listmodel, to avoid regeneration of a table on each change
+//
+//                let mapping itemInOriginalList =
+//                    let sortedMap =
+//                        view.Value
+//                        |> sortFunction
+//                        |> Seq.indexed
+//                    Seq.tryPick (fun (indexInSortedList, item) -> 
+//                        if this.DataSource.IdFunc itemInOriginalList = this.DataSource.IdFunc item && filter itemInOriginalList then 
+//                            Some (indexInSortedList, this.DataSource.IdFunc itemInOriginalList)
+//                        else None) sortedMap
+//
+//                [Doc.BindSeqCachedViewBy mapping (function
+//                    | Some (_, key) ->
+//                        fun _ ->
+//                            let tLens = view.Lens key
+//                            [rowFunction tLens; detailRowFunction tLens] |> Doc.Concat
+//                    | None -> fun _ -> Doc.Empty) view.View]
+
+
                 view.Value
                 |> sortFunction
                 |> Seq.filter filter
