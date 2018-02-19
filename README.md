@@ -13,7 +13,7 @@ so remember to include the following in your header.
 ```
 
 ## Versions
-Current version is 0.3.0
+Current version is 0.7.1
 
 ### 0.3.0
 
