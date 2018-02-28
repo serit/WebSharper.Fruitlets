@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>WebSharper.Fruitlets</id>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
     <authors>Serit IT Partner Tromsø</authors>
     <owners>Serit IT Partner Tromsø</owners>
     <projectUrl>http://serit.no</projectUrl>

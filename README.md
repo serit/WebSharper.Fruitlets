@@ -13,7 +13,12 @@ so remember to include the following in your header.
 ```
 
 ## Versions
-Current version is 0.7.1
+Current version is 0.7.2
+
+### 0.7.2
+
+Main changes since the last version include changes in settings of the Table type
+
 
 ### 0.3.0
 
