@@ -454,10 +454,9 @@ module Table =
                 ) 
             ]  
         /// <summary>
-        /// Show all data in pages with 1 table each of length pageSize  
+        /// Show all data in pages with each table with #pageSize rows
         /// </summary>
         member this.ShowTableWithPages pageSize =
-            // let currentPage = Var.Create 0
             let currentItem = Var.Create None
             this.DataSource.Read()
             divAttr[

@@ -80,7 +80,7 @@ module Select =
                 let currentKey, currentDoc =
                     match target with
                     | Some value -> value
-                    | _ -> this.Default, (fun () -> text "-")
+                    | _ -> this.Default, (fun () -> text " ")
                 divAttr
                     [attr.``class`` "dropdown fruit-form-dropdown"]
                     [
@@ -121,7 +121,7 @@ module Select =
 //                                            else
 //                                                Attr.Empty)
                                         ] [
-                                            aAttr[attr.href "javascript:return false;"][value ()]
+                                            aAttr[attr.href "javascript:false;"][value ()]
                                             ] :> Doc
                                     )
                             ) :> Doc
