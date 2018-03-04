@@ -2,10 +2,10 @@ namespace WebSharper.Fruitlets.Examples
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Html
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Server
+open WebSharper.UI
+open WebSharper.UI.Html
+open WebSharper.UI.Client
+open WebSharper.UI.Server
 open WebSharper.Fruitlets
 
 
@@ -68,7 +68,7 @@ module FormClient =
                 Status = Var.Create NoStatus
             }
 
-        div[
-              h2 [text "Testform"]
-              div <| testForm.show emptyForm
+        div [] [
+              h2 [] [text "Testform"]
+              div [] <| testForm.show emptyForm
         ]

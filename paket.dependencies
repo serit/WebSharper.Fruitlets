@@ -4,4 +4,6 @@ storage none
 nuget WebSharper 
 nuget WebSharper.FSharp
 nuget WebSharper.UI
+nuget WebSharper.AspNetCore
 nuget FSharp.Data
+nuget Microsoft.AspNetCore.All

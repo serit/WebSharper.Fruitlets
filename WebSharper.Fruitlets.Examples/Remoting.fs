@@ -1,9 +1,9 @@
 namespace WebSharper.Fruitlets.Examples
 
 open WebSharper
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 open WebSharper.Web
 
 open FSharp.Data
@@ -40,8 +40,7 @@ module Server =
     [<Literal>]
     let gamePath = "..\\data\\games.csv"
 
-    type Game =
-        CsvProvider<gamePath>
+    type Game = CsvProvider<gamePath>
 
     [<JavaScript>]
     type GameObject =
@@ -78,17 +77,18 @@ module Server =
     [<Rpc>]
     let GetGames () =
         async {
-            let Games = Game.Load(gamePath)
+            let games = Game.Load(gamePath)
             return
-                Games.Rows
+                games.Rows
                 |> Seq.map (fun t ->
-
                         let year =
                             try
-                                 ( t.Title.Trim ')') |> fun s -> s.Split '(' |> Array.item 1 |> int
+                                //  ( t.Title.Trim ')') |> fun s -> s.Split [|'('|] |> Array.item 1 |> int
+                                0
                             with
                                 | _ -> 0
-                        GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``, year))
+                        // GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``, year))
+                        GameObject.Create("",0.0,0,0, 0))
                 |> Seq.toArray
         }
 

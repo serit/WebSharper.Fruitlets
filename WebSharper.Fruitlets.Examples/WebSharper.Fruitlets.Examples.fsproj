@@ -1,20 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <WebSharperProject>Library</WebSharperProject>
+    <WebSharperProject>Website</WebSharperProject>
+    <WebProjectOutputDir>$(MSBuildThisFileDirectory)/wwwroot</WebProjectOutputDir>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="index.html" CopyToPublishDirectory="Always" />
     <Compile Include="Remoting.fs" />
     <Compile Include="Form.fs" />
     <Compile Include="BooksAPI.fs" />
     <Compile Include="Client.fs" />
-    <Content Include="index.html" />
-    <Content Include="Web.config" />
-    <Content Include="Global.asax" />
-    <Compile Include="Global.asax.fs" />
-    <None Include="Setup.fsx" />
+    <Compile Include="Site.fs" />
+    <Compile Include="Startup.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WebSharper.Fruitlets\WebSharper.Fruitlets.fsproj" />
   </ItemGroup>
   <Target Name="IncludeContent" BeforeTargets="Compile">
     <ItemGroup>
@@ -22,6 +24,7 @@
       <Content Include="Scripts/**/*.*" />
     </ItemGroup>
   </Target>
+  <Import Project="csvprovider.netcore.props" />
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
 <!-- vim:ft=xml
