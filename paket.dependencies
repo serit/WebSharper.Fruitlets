@@ -1,14 +1,7 @@
-source \\itpmedia\Media\NuGet
 source https://api.nuget.org/v3/index.json
-framework >= net45
+storage none
 
-
-group Main
-source https://www.nuget.org/api/v2
-
-nuget IntelliFactory.Core
-nuget IntelliFactory.Xml 
-nuget WebSharper < 4
-nuget WebSharper.UI.Next
-nuget Mono.Cecil
+nuget WebSharper 
+nuget WebSharper.FSharp
+nuget WebSharper.UI
 nuget FSharp.Data

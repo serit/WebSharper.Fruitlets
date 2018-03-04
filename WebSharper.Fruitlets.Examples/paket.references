@@ -1,5 +1,5 @@
-Intellifactory.Core
-Mono.Cecil
 WebSharper
-WebSharper.UI.Next
+WebSharper.FSharp
+WebSharper.UI
 FSharp.Data
+FSharp.Core

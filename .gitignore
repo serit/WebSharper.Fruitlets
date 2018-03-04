@@ -4,6 +4,7 @@
 # Project specific
 nuget.exe
 paket.lock
+paket-files/
 WebSharper*.js
 */Scripts
 
