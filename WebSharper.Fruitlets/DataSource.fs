@@ -3,9 +3,9 @@
 open WebSharper
 open WebSharper.JavaScript
 open WebSharper.JQuery
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 [<JavaScript>]
 module DataSource =
@@ -31,7 +31,7 @@ module DataSource =
                 Url = url,
                 DataType = this.RemoteDataType,
                 Success = success,
-                Error = fun errorTuple -> this.ErrorStatus.Value <- sprintf "%A" errorTuple
+                Error = System.Action<_,_,_>(fun errorTuple _ _ -> this.ErrorStatus.Value <- sprintf "%A" errorTuple)
             )
             |> this.Authenticate
             |> JQuery.Ajax
@@ -44,7 +44,7 @@ module DataSource =
                 Data = data,
                 DataType = this.RemoteDataType,
                 Success = success,
-                Error =  fun errorTuple -> this.ErrorStatus.Value <- sprintf "%A" errorTuple
+                Error =  System.Action<_,_,_>(fun errorTuple _ _ -> this.ErrorStatus.Value <- sprintf "%A" errorTuple)
 
             )
             |> this.Authenticate
@@ -54,26 +54,27 @@ module DataSource =
         member this.Create (currentItem: Var<'T option>) (model : ListModel<'U,'T>) =
             match this.CreateFunc with
             | Some cf ->
-                this.Post cf null  (fun (result, _, _) -> currentItem.Value <- Some (this.DeserializeSingle result))
+                this.Post cf null (System.Action<_,_,_>(fun result _ _ -> currentItem.Value <- Some (this.DeserializeSingle result)))
             | None -> ()
         member this.Read (model : ListModel<'U,'T>) =
             match this.ReadFunc with
             | Some rf -> 
-                this.Get rf (fun (result, _, _) -> model.Set (this.DeserializeMany result))
+                this.Get rf (System.Action<_,_,_>(fun result _ _ -> model.Set (this.DeserializeMany result)))
             | None -> ()
         member this.Update (item: 'T) (model : ListModel<'U,'T>) idFunc =
             match this.UpdateFunc with
             | Some uf ->   
-                this.Post (uf item) (this.SerializeSingle item) (fun (result, _, _)  -> 
+                this.Post (uf item) (this.SerializeSingle item) (System.Action<_,_,_>(fun result _ _ -> 
                     let key = idFunc <| this.DeserializeSingle result
                     if model.ContainsKey key then 
                         model.UpdateBy (fun t -> Some item) key
                     else model.Add <| this.DeserializeSingle result)
+                )
             | None -> ()
         member this.Delete (item: 'T) (model : ListModel<'U,'T>) idFunc=
             match this.DeleteFunc with
             | Some df ->
-                this.Post (df item) (this.SerializeSingle item) (fun (result, _, _)  -> model.RemoveByKey (idFunc item))
+                this.Post (df item) (this.SerializeSingle item) (System.Action<_,_,_>(fun result _ _ -> model.RemoveByKey (idFunc item)))
             | None -> ()
         static member empty =
             {

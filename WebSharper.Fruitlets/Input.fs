@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Bootstrap formfields
 [<JavaScript>]
@@ -47,21 +47,21 @@ module Input =
         | SelectOption of (('DataType -> int option) * ('DataType -> int option -> 'DataType) * Var<Map<int,string>>)
         | StringSeq of GetSetter<'DataType, seq<string>>
         member this.formWrapper label' extraAttrs content =
-            divAttr([ attr.``class`` "form-group fruit-form-group"] @ extraAttrs)[
-                labelAttr[attr.``for`` label'][text label']
+            div([ attr.``class`` "form-group fruit-form-group"] @ extraAttrs)[
+                label[attr.``for`` label'][text label']
                 content
             ] :> Doc
         member this.errorFormWrapper label' attrs content  =
-            divAttr[ attr.``class`` "form-group has-error has-feedback fruit-form-group fruit-has-error fruit-has-feedback"][
-                labelAttr[attr.``for`` label'][text label']
+            div[ attr.``class`` "form-group has-error has-feedback fruit-form-group fruit-has-error fruit-has-feedback"][
+                label[attr.``for`` label'][text label']
                 content
-                spanAttr[attr.``class`` "glyphicon glyphicon-remove form-control-feedback"][]
+                span[attr.``class`` "glyphicon glyphicon-remove form-control-feedback"][]
             ] :> Doc
         member this.successFormWrapper label' attrs content  =
-            divAttr[ attr.``class`` "form-group has-success has-feedback fruit-form-group fruit-has-success fruit-has-feedback"][
-                labelAttr[attr.``for`` label'][text label']
+            div[ attr.``class`` "form-group has-success has-feedback fruit-form-group fruit-has-success fruit-has-feedback"][
+                label[attr.``for`` label'][text label']
                 content
-                spanAttr[attr.``class`` "glyphicon glyphicon-ok form-control-feedback"][]
+                span[attr.``class`` "glyphicon glyphicon-ok form-control-feedback"][]
             ] :> Doc
         member this.show (label' : string, attrs : Var<'DataType option> -> Attr list, formWrapper) =
             let baseAttrs = 
@@ -76,7 +76,7 @@ module Input =
 
                     Doc.BindView ( fun t'' ->
                         let s = SomeOrDefault getter List.Empty t''
-                        divAttr (attr.disabled "disabled" :: baseAttrs) s |> formWrapper (attrs t')
+                        div (attr.disabled "disabled" :: baseAttrs) s |> formWrapper (attrs t')
                     ) t'.View
                     
                 | String (getter, setter) ->
@@ -106,8 +106,8 @@ module Input =
                     OptionalInput.FloatField label' getter setter t'
                 | Bool (getter, setter) ->
                     let s = Var.Lens t' (SomeOrDefault getter false) (SomeSetter setter)
-                    divAttr(attrs t' @ [ attr.``class`` "checkbox"])[
-                        label[
+                    div(attrs t' @ [ attr.``class`` "checkbox"])[
+                        label [] [
                             Doc.CheckBox [] s
                             text label'
                         ]

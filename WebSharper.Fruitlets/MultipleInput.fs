@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Bootstrap formfields
 [<JavaScript>]
@@ -18,7 +18,7 @@ module MultipleInput =
         Some <| setter t.Value s
 
         
-    let private wrapSeq (vls: IRef<seq<'T>>) : IRef<seq<Var<'T>>> =
+    let private wrapSeq (vls: Var<seq<'T>>) : Var<seq<Var<'T>>> =
 
         let getter (ls : seq<'T>) : seq<Var<'T>> =
             Seq.map (fun l ->
@@ -45,25 +45,25 @@ module MultipleInput =
 
         }
         member this.formWrapper content =
-            divAttr[ attr.``class`` "form-group fruit-form-group"][
-                labelAttr[attr.``for`` this.Label][text this.Label]
+            div[ attr.``class`` "form-group fruit-form-group"][
+                label[attr.``for`` this.Label][text this.Label]
                 content
             ] :> Doc
         member this.FieldWrapperWithAdd content =
-            divAttr[ attr.``class`` "input-group fruit-form-input-group"][
+            div[ attr.``class`` "input-group fruit-form-input-group"][
                 content
-                spanAttr[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
-                    buttonAttr[attr.``class`` "btn btn-success btn-add fruit-btn fruit-btn-form-add"][
-                        iAttr[attr.``class`` "fa fa-plus"][]
+                span[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
+                    button[attr.``class`` "btn btn-success btn-add fruit-btn fruit-btn-form-add"][
+                        i[attr.``class`` "fa fa-plus"][]
                     ]
                 ]
             ] :> Doc
         member this.FieldWrapperWithRemove content =
-            divAttr[ attr.``class`` "input-group fruit-form-input-group"][
+            div[ attr.``class`` "input-group fruit-form-input-group"][
                 content
-                spanAttr[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
-                    buttonAttr[attr.``class`` "btn btn-danger btn-remove fruit-btn-form-remove"][
-                        iAttr[attr.``class`` "fa fa-minus"][]
+                span[attr.``class`` "input-group-btn fruit-form-input-group-btn"][
+                    button[attr.``class`` "btn btn-danger btn-remove fruit-btn-form-remove"][
+                        i[attr.``class`` "fa fa-minus"][]
                     ]
                 ]
             ] :> Doc

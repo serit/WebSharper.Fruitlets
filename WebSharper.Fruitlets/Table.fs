@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Bootstrap table
 [<JavaScript>]
@@ -154,15 +154,15 @@ module Table =
             Doc.BindView( function
                 | "" -> Doc.Empty
                 | msg ->
-                    divAttr[
+                    div[
                         attr.``class`` "alert alert-danger alert-dismissable"
                     ][
-                        aAttr[
+                        a[
                             attr.href "#"
                             attr.``class`` "close"
                             attr.``data-`` "dismiss" "alert"
                             on.click (fun _ _ -> errorVar.Value <- "")
-                        ][iAttr[attr.``class`` "fa fa-close"][]]
+                        ][i[attr.``class`` "fa fa-close"][]]
                         text msg
                     ] :> Doc
             ) errorVar.View
@@ -194,7 +194,7 @@ module Table =
                                 errorVar.Value <- "Invalid data"
                             | Result.Failure msg->
                                 errorVar.Value <- msg )]
-            buttonAttr
+            button
                 (saveButtonAttrs @ extraAttributes ) 
                 saveButtonContent :> Doc
         member private this.DeleteButtonShow (t : 'DataType) =
@@ -204,12 +204,12 @@ module Table =
                 let modalwindow =
                     {
                         Header =  
-                            h2Attr 
+                            h2
                                 [attr.``class`` "fruit-modal-header"] 
                                 [text <| this.Settings.ModalDeleteHeader t]
                         Body = text "Are you sure you want to delete this item?"
                         Footer =
-                            div[
+                            div [] [
                                 this.ModalDeleteButtonShow t
                                 this.ModalCancelButtonShow t
                             ]
@@ -221,16 +221,16 @@ module Table =
             let attrs, content =
                 match this.Settings.DeleteButton with
                 | Some button -> button.Attributes t, button.Docs t
-                | None -> [attr.``class``  "btn btn-danger fruit-btn fruit-btn-delete fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-trash"][] ]
+                | None -> [attr.``class``  "btn btn-danger fruit-btn fruit-btn-delete fruit-btn-icon-only"], [ i[ attr.``class`` "fa fa-trash"][] ]
 
-            divAttr[attr.style "display: inline-block"][
+            div[attr.style "display: inline-block"][
                 confirmDialog()
                 Modal.Button modalId attrs content
             ] :> Doc
         member private this.EditFooter windowId errorVar (item : 'DataType option) =
             match item with
             | Some v ->
-                div[
+                div [] [
                     (if this.DataSource.UpdateFunc then this.SaveButton windowId errorVar v else Doc.Empty)
                     this.ModalCancelButtonShow v
                 ] :> Doc
@@ -239,14 +239,14 @@ module Table =
             let cancelButtonAttrs, cancelButtonContent =
                 match this.Settings.ModalCancelButton with
                 | Some button -> button.Attributes item, button.Docs item
-                | None -> [attr.``class`` "btn btn-secondary fruit-btn fruit-btn-cancel"], [ iAttr[ attr.``class`` "fa fa-close"][]; text " Close" ]
-            buttonAttr(attr.``data-`` "dismiss" "modal" :: cancelButtonAttrs) cancelButtonContent 
+                | None -> [attr.``class`` "btn btn-secondary fruit-btn fruit-btn-cancel"], [ i[ attr.``class`` "fa fa-close"][]; text " Close" ]
+            button(attr.``data-`` "dismiss" "modal" :: cancelButtonAttrs) cancelButtonContent 
         member private this.ModalDeleteButtonShow (t) =
             let deleteButtonAttrs, deleteButtonContent =
                 match this.Settings.ModalDeleteButton with
                 | Some button -> button.Attributes t, button.Docs t
-                | None -> [attr.``class`` "btn btn-danger fruit-btn fruit-btn-delete"], [ iAttr[ attr.``class`` "fa fa-trash"][]; text " Delete" ]
-            buttonAttr
+                | None -> [attr.``class`` "btn btn-danger fruit-btn fruit-btn-delete"], [ i[ attr.``class`` "fa fa-trash"][]; text " Delete" ]
+            button
                 ([
                     attr.``data-`` "dismiss" "modal"
                     on.click (fun el ev ->
@@ -277,12 +277,12 @@ module Table =
                     | Some (Column.DocField docField), _, _ -> docField item
                 )
                 |> Array.toList
-                |> formAttr [attr.``class`` "fruit-form"]
+                |> form [attr.``class`` "fruit-form"]
 
             {
                 Id = windowId
                 Header = 
-                    h2Attr 
+                    h2
                         [attr.``class`` "fruit-modal-header"] 
                         [textView <| View.Map (function 
                             | Some t' ->  this.Settings.ModalUpdateHeader t'
@@ -299,7 +299,7 @@ module Table =
             let attrs, content =
                 match this.Settings.EditButton with
                 | Some button -> button.Attributes t, button.Docs t
-                | None -> [attr.``class``  "btn btn-primary fruit-btn fruit-btn-edit fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-edit"][] ]
+                | None -> [attr.``class``  "btn btn-primary fruit-btn fruit-btn-edit fruit-btn-icon-only"], [ i[ attr.``class`` "fa fa-edit"][] ]
 
             Modal.Button
                 idCode (attrs @ [ on.click( fun el ev -> currentItem.Value <- Some t)]) content :> Doc
@@ -314,11 +314,11 @@ module Table =
                 let attrs, content =
                     match this.Settings.AddButton with
                     | Some button -> button.Attributes, button.Docs
-                    | None -> [attr.``class`` "btn btn-success fruit-btn fruit-btn-create fruit-btn-icon-only"], [ iAttr[ attr.``class`` "fa fa-plus"][] ]
+                    | None -> [attr.``class`` "btn btn-success fruit-btn fruit-btn-create fruit-btn-icon-only"], [ i[ attr.``class`` "fa fa-plus"][] ]
 
-                div[
+                div [] [
                     (this.EditWindow currentItem newModalId).Show()
-                    buttonAttr 
+                    button 
                         ( attrs @ 
                             [
                                 attr.``data-`` "toggle" "modal"
@@ -332,7 +332,7 @@ module Table =
             // add an extra column with an edit button
             let extracol = 
                 if this.isEditable || this.isDeletable then 
-                    [| thAttr[ attr.``class`` "fruit-edit-btn-column" ][] :> Doc |] 
+                    [| th[ attr.``class`` "fruit-edit-btn-column" ][] :> Doc |] 
                 else [||]
 
             this.Columns
@@ -343,16 +343,16 @@ module Table =
                 column.showHeader index this.DataSource )
             |> flip Array.append extracol
             |> fun headerRow -> 
-                theadAttr
+                thead
                     this.Settings.TableElementAttributes.THead
-                    [trAttr this.Settings.TableElementAttributes.THeadRow headerRow] :> Doc
+                    [tr this.Settings.TableElementAttributes.THeadRow headerRow] :> Doc
         member private this.ShowTableFilter (filter: 'DataType -> bool ) (currentItem : Var<'DataType option>) sortFunction =
             let idCode = sprintf "%s-edit-%i" this.Id' ( int <| (Math.Random() * 100000.) + 1.)
             let editdeleteColumn t =
                 if this.isEditable || this.isDeletable
                 then
                     [
-                        tdAttr[attr.``class`` "fruit-edit-btn-column"][
+                        td[attr.``class`` "fruit-edit-btn-column"][
                             (
                                 if this.isEditable
                                 then this.EditButtonShow idCode currentItem t
@@ -366,7 +366,7 @@ module Table =
                 else List.empty
                 |> List.toArray
             let rows (view: ListModel<'Key, 'DataType>) =
-                let rowFunction (t: IRef<'DataType>) =
+                let rowFunction (t: Var<'DataType>) =
                     let row =
                         this.Columns
                         |> Array.filter ( fun column ->
@@ -385,8 +385,8 @@ module Table =
                                 | _ -> ()
                             )
                         ]
-                    trAttr trAttributes row :> Doc
-                let detailRowFunction (t: IRef<'DataType>) =
+                    tr trAttributes row :> Doc
+                let detailRowFunction (t: Var<'DataType>) =
                     match this.Settings.ShowDetail with
                     | NoDetail -> Doc.Empty  
                     | AllRows f -> Doc.BindView f t.View
@@ -428,13 +428,13 @@ module Table =
             let tableAttributes = attr.id this.Id' :: this.Settings.TableElementAttributes.Table
             let tableContents =
                 if this.Settings.ShowTableHeader then
-                    this.ShowHeader() :: [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
-                else [tbodyAttr this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
-            div [
+                    this.ShowHeader() :: [tbody this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
+                else [tbody this.Settings.TableElementAttributes.TBody <| rows this.DataSource.Model]
+            div [] [
                 (if this.isEditable
                 then (this.EditWindow currentItem idCode).Show()
                 else Doc.Empty)
-                tableAttr tableAttributes tableContents
+                table tableAttributes tableContents
             ]   
         /// <summary>
         /// Show all data in a table   
@@ -442,7 +442,7 @@ module Table =
         member this.ShowTable () =
             let currentItem = Var.Create None
             this.DataSource.Read()
-            divAttr[
+            div[
                 attr.``class`` "fruit-table-wrapper"
             ][
                 (if this.Settings.ShowErrors then this.ErrorBox() else Doc.Empty)
@@ -459,7 +459,7 @@ module Table =
         member this.ShowTableWithPages pageSize =
             let currentItem = Var.Create None
             this.DataSource.Read()
-            divAttr[
+            div[
                 attr.``class`` "fruit-table-wrapper"
             ][
                 (if this.Settings.ShowErrors then this.ErrorBox() else Doc.Empty)

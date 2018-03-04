@@ -1,9 +1,9 @@
 ﻿namespace WebSharper.Fruitlets
 
 open WebSharper
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 [<JavaScript>]
 module Tab =
@@ -21,8 +21,8 @@ module Tab =
                 then (attr.``class`` "active") :: this.AttrList
                 else this.AttrList
 
-            liAttr attrs [
-                aAttr[
+            li attrs [
+                a[
                     attr.``data-`` "toggle" "tab"
                     attr.href <| sprintf "#%s" this.Id
                     ][text this.Title]
@@ -32,7 +32,7 @@ module Tab =
                 if this.Active
                 then "tab-pane fade in active fruit-tab-pane"
                 else "tab-pane fade fruit-tab-pane"
-            divAttr[
+            div[
                 attr.id this.Id
                 attr.``class`` cls
                 ] [
@@ -42,11 +42,11 @@ module Tab =
     let ShowHeader (tabList : Tab list) =
         tabList
         |> List.map (fun t -> t.ShowLink())
-        |> ulAttr [attr.``class`` "nav nav-tabs fruit-nav fruit-nav-tabs"]
+        |> ul [attr.``class`` "nav nav-tabs fruit-nav fruit-nav-tabs"]
 
     let ShowContent (tabList : Tab list) =
         tabList
         |> List.map (fun t -> t.ShowDiv())
-        |> divAttr [attr.``class`` "tab-content fruit-tab-content"]
+        |> div [attr.``class`` "tab-content fruit-tab-content"]
 
 

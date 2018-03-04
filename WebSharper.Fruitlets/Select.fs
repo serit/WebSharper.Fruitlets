@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Bootstrap select fields
 [<JavaScript>]
@@ -16,9 +16,9 @@ module Select =
     
     type GenericSelect<'K, 'T> when 'K: comparison =
         {
-            Options: IRef<Map<'K, unit -> Doc>>
-            SelectedLens: IRef<'K option>
-            SelectedOrigin: IRef<'T option>
+            Options: Var<Map<'K, unit -> Doc>>
+            SelectedLens: Var<'K option>
+            SelectedOrigin: Var<'T option>
             TransformToKeyFromString: string -> 'K
             TransformToStringFromKey: 'K -> string
             Default: 'K
@@ -31,7 +31,7 @@ module Select =
                     match target with
                     | Some value -> value
                     | _ -> this.Default
-                selectAttr
+                select
                     ([
                         attr.``class`` "fruit-form-select form-control"
                         on.change (fun el _ -> this.SelectedLens.Set << Some << this.TransformToKeyFromString <| getSelected el)
@@ -81,10 +81,10 @@ module Select =
                     match target with
                     | Some value -> value
                     | _ -> this.Default, (fun () -> text " ")
-                divAttr
+                div
                     [attr.``class`` "dropdown fruit-form-dropdown"]
                     [
-                        buttonAttr
+                        button
                             [
                                 attr.``class`` "btn dropdown-toggle"
                                 attr.``type`` "button"
@@ -92,9 +92,9 @@ module Select =
                             ]
                             [
                                 currentDoc ()                  
-                                spanAttr[attr.``class`` "caret"][]
+                                span[attr.``class`` "caret"][]
                             ]
-                        ulAttr
+                        ul
                             (attrs @ [
                                 attr.``class`` "dropdown-menu"
                                 //on.change (fun el _ -> this.SelectedLens.Set << Some << this.TransformToKeyFromString <| getSelected el)
@@ -112,7 +112,7 @@ module Select =
                             (
                                 mapList
                                 |> List.map ( fun (key, value) ->
-                                    liAttr
+                                    li
                                         [
                                             on.click (fun _ _ -> this.SelectedLens.Set <| Some key)
                                             //attr.value <| this.TransformToStringFromKey key
@@ -121,14 +121,14 @@ module Select =
 //                                            else
 //                                                Attr.Empty)
                                         ] [
-                                            aAttr[attr.href "javascript:false;"][value ()]
+                                            a[attr.href "javascript:false;"][value ()]
                                             ] :> Doc
                                     )
                             ) :> Doc
                     ]
                 ) detectChangeInOptionsAndItem
             
-    let internal SelectInt attrs (options: IRef<Map<int, unit -> Doc>>) (targetLens:IRef<int option>) (datatype: IRef<'T option>) =
+    let internal SelectInt attrs (options: Var<Map<int, unit -> Doc>>) (targetLens:Var<int option>) (datatype: Var<'T option>) =
         let selectObject =
             {
                 Options = options
@@ -140,7 +140,7 @@ module Select =
                 
             }
         selectObject.Show attrs
-    let SelectDoc attrs  (options: IRef<Map<int, unit -> Doc>>) (targetLens:IRef<int option>) (datatype: IRef<'T option>) =
+    let SelectDoc attrs  (options: Var<Map<int, unit -> Doc>>) (targetLens:Var<int option>) (datatype: Var<'T option>) =
         let selectObject =
             {
                 Options = options
@@ -152,7 +152,7 @@ module Select =
                 
             }
         selectObject.ShowDropDown attrs
-    let internal SelectString attrs (options: IRef<Map<string, unit -> Doc>>) (targetLens:IRef<string option>) (datatype: IRef<'T option>) =
+    let internal SelectString attrs (options: Var<Map<string, unit -> Doc>>) (targetLens:Var<string option>) (datatype: Var<'T option>) =
         let selectObject =
             {
                 Options = options
@@ -166,7 +166,7 @@ module Select =
         selectObject.Show attrs
 //
 //
-//    let private Select' attrs (options: Var<Map<int,string>>) (targetLens:IRef<int option>) (datatype: IRef<'T option>) =
+//    let private Select' attrs (options: Var<Map<int,string>>) (targetLens:Var<int option>) (datatype: Var<'T option>) =
 //        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
 //        Doc.BindView( fun ((map : Map<int,string>), (target: int option)) ->
 //            let mapList = Map.toList map
@@ -205,7 +205,7 @@ module Select =
 //                        )
 //                ) :> Doc
 //        ) detectChangeInOptionsAndItem
-//    let private SelectWithString' attrs (options: Var<Map<string,string>>) (targetLens:IRef<string option>) (datatype: IRef<'T option>)  =
+//    let private SelectWithString' attrs (options: Var<Map<string,string>>) (targetLens:Var<string option>) (datatype: Var<'T option>)  =
 //        let detectChangeInOptionsAndItem = View.Map2 (fun opt target -> opt, target) options.View targetLens.View 
 //        Doc.BindView( fun ((map : Map<string,string>), (target: string option)) ->
 //            let mapList = Map.toList map

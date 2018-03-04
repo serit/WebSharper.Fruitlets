@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 
 [<JavaScript>]
@@ -27,8 +27,8 @@ module OptionalInput =
             Setter: 'DataType -> 'ValueType option -> 'DataType
         }
         member this.formWrapper content =
-            divAttr([ attr.``class`` "form-group fruit-form-group"] @ this.WrapperAttrs)[
-                labelAttr[attr.``for`` this.Label][text this.Label]
+            div([ attr.``class`` "form-group fruit-form-group"] @ this.WrapperAttrs)[
+                label[attr.``for`` this.Label][text this.Label]
                 content
             ] :> Doc
         member this.defaultAttrs =
@@ -42,7 +42,7 @@ module OptionalInput =
                 Var.Lens t' (SomeOrDefault (OptionToBool << this.Getter) false) (fun t s' -> Some <| this.Setter t.Value (if s' then Some <| optionToValue s.Value else None))
         member this.Show inputField =
 
-            let hideField (sBool : IRef<bool>) =
+            let hideField (sBool : Var<bool>) =
                 View.Map (function
                     | true -> "display:inline-block"
                     | false -> "display:none"
@@ -50,9 +50,9 @@ module OptionalInput =
             fun (t': Var<'DataType option>) optionToValue ->
                 let sBool = this.OptionToBool t' optionToValue
 
-                divAttr[attr.``class`` "form-inline fruit-form-inline"][
+                div[attr.``class`` "form-inline fruit-form-inline"][
                     Doc.CheckBox [attr.``class`` "fruit-form-checkbox"] sBool
-                    divAttr[attr.styleDyn <| hideField sBool][inputField]
+                    div[attr.styleDyn <| hideField sBool][inputField]
                 ] |> this.formWrapper
         // default: optionToValue defaultValue inputType
         member __.OptionToDefault defaultValue = function
@@ -69,7 +69,7 @@ module OptionalInput =
 //        {
 //            InputType: OptionalInputType<'DataType, 'ValueType>
 //            Default: 'ValueType
-//            DocElement: Attr list -> IRef<'ValueType> -> Elt
+//            DocElement: Attr list -> Var<'ValueType> -> Elt
 //        }
 //        member this.show() =
 //            let optionToValueGetter = (fun t -> (this.InputType.OptionToDefault this.Default << this.InputType.Getter <| t))
@@ -114,8 +114,8 @@ module OptionalInput =
 
         let optionToValueGetter = (fun t -> (field.Getter t))
         fun (t': Var<'DataType option>) ->
-            let Select'' attrs (selectLens: IRef<int option>) =
+            let Select'' attrs (selectLens: Var<int option>) =
                 Select.SelectInt attrs options selectLens t'
-            let sGeneric : IRef<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
+            let sGeneric : Var<int option> = Var.Lens t' (SomeOrDefault optionToValueGetter None) (fun t s' -> Some <| field.Setter t.Value (s'))
             let inputField = Select'' field.defaultAttrs sGeneric
             field.Show inputField t' (field.OptionToDefault 0)

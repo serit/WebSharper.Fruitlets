@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Columns used in the Table module
 [<JavaScript>]
@@ -85,7 +85,7 @@ module Column =
 
     type FormField<'DataType> =
         | InputField of InputType<'DataType>
-        | DocField of (IRef<'DataType option> -> Doc)
+        | DocField of (Var<'DataType option> -> Doc)
 
     type Column<'DataType> =
         {
@@ -95,7 +95,7 @@ module Column =
             DocList: ('DataType -> list<Doc>)
             SortFunction: ('DataType -> Sort.SortableType) option
             // this should reference the var, so that any event handlers can influence the value of the item
-            EditFieldAttrList: (IRef<'DataType option> -> list<Attr>) option
+            EditFieldAttrList: (Var<'DataType option> -> list<Attr>) option
             EditField: FormField<'DataType> option
             Permission: ColumnPermission
         }
@@ -106,7 +106,7 @@ module Column =
                 | None -> text this.Name
             match this.SortFunction with
             | Some sortFunc ->
-                thAttr([
+                th([
                         on.click ( fun _ _ ->
                             match ds.SortFunction.Value with
                             | Some (Sort.AscByColumn index') when index' = index ->
@@ -116,7 +116,7 @@ module Column =
                         )
                 ] )[
                     headerField ()
-                    iAttr[
+                    i[
                         attr.style "color: #aaa;"
                         attr.classDyn <| View.Map (function
                             | Some (Sort.AscByColumn index') -> (Sort.AscByColumn index').FAClass index
@@ -125,11 +125,11 @@ module Column =
                     ][] :> Doc
                 ] :> Doc
             | None ->
-                th [
+                th [] [
                     headerField ()
                 ] :> Doc
 
-        member this.showRow (item: IRef<'DataType>) =
+        member this.showRow (item: Var<'DataType>) =
             match this.Permission.Table with
             | Invisible -> Doc.Empty
             | Read | ReadWrite -> 
@@ -137,8 +137,8 @@ module Column =
                     this.DocList item'
                     |>
                     match this.AttrList with
-                    | Some attrList -> tdAttr ( attrList item' )
-                    | None -> td) item.View
+                    | Some attrList -> td ( attrList item' )
+                    | None -> td []) item.View
             /// Obs! should this trigger an update? But how? Maybe better from user code
             /// Having form fields in the table would allow updates without verification so leave it out for now
 //            | ReadWrite -> 
@@ -148,7 +148,7 @@ module Column =
 //                | Some editfield -> 
 //                    let cellContents = editfield.show "" (itemLens :?> Var<'DataType option>)
 //                    match this.AttrList with
-//                    | Some attrList -> tdAttr ( attrList item.Value ) [cellContents] :> Doc
+//                    | Some attrList -> td ( attrList item.Value ) [cellContents] :> Doc
 //                    | None -> td [cellContents] :> Doc
 //                | None -> Doc.Empty 
             

@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 // Bootstrap formfields
 [<JavaScript>]
@@ -161,18 +161,18 @@ module Form =
                     Doc.BindView (function
                         | Error errs ->
                             errs
-                            |> List.map (fun err -> li [text err] :> Doc)
-                            |> fun errList -> [ul errList :> Doc]
-                            |> divAttr[attr.``class`` "alert alert-danger fruit-alert fruit-alert-danger"] :> Doc
+                            |> List.map (fun err -> li [] [text err] :> Doc)
+                            |> fun errList -> [ul [] errList :> Doc]
+                            |> div[attr.``class`` "alert alert-danger fruit-alert fruit-alert-danger"] :> Doc
                         | Submitted ->
-                            divAttr[attr.``class`` "alert alert-success fruit-alert fruit-alert-success"][text this.SubmitSuccess] :> Doc
+                            div[attr.``class`` "alert alert-success fruit-alert fruit-alert-success"][text this.SubmitSuccess] :> Doc
                         | Validating -> 
-                            divAttr[attr.``class`` "alert alert-info fruit-alert fruit-alert-info"][
-                                iAttr[attr.``class`` "fa fa-refresh fa-spin"][]
+                            div[attr.``class`` "alert alert-info fruit-alert fruit-alert-info"][
+                                i[attr.``class`` "fa fa-refresh fa-spin"][]
                                 text " Validating"] :> Doc
                         | Submitting  -> 
-                            divAttr[attr.``class`` "alert alert-info fruit-alert fruit-alert-info"][
-                                iAttr[attr.``class`` "fa fa-refresh fa-spin"][]
+                            div[attr.``class`` "alert alert-info fruit-alert fruit-alert-info"][
+                                i[attr.``class`` "fa fa-refresh fa-spin"][]
                                 text " Submitting"] :> Doc
                         | _ -> Doc.Empty
                     ) this.Status.View
@@ -296,11 +296,11 @@ module Form =
                             | Loaded 
                             | Error _ 
                             | Submitted ->
-                                buttonAttr[
+                                button[
                                     attr.id <| sprintf "fruit-form-submit-%i" this.Id
                                     attr.``class`` "btn btn-info fruit-btn fruit-btn-save"
                                     on.click(fun el ev ->
-                                        formVersion <- formVersion + 1
+                                        // formVersion <- formVersion + 1
                                         match t' with
                                         | Some t'' -> submit t' t'' el ev
                                         | None -> ()           
@@ -329,14 +329,14 @@ module Form =
                                             else JS.SetTimeout tryLoadText 1000 |> ignore
                                         with | exn -> Console.Log exn
                                     JS.SetTimeout tryLoadText 1000 |> ignore
-                                divAttr[
+                                div[
                                     on.afterRender afterRender
                                 ][
                                     Doc.BindView( function
                                         | Loaded 
                                         | Error _ 
                                         | Submitted ->
-                                            buttonAttr[
+                                            button[
                                                 attr.id <| sprintf "fruit-form-submit-%i" this.Id
                                                 attr.``class`` "btn btn-info fruit-btn fruit-btn-save"
                                                 on.click clickFunction
@@ -349,12 +349,12 @@ module Form =
                             )
 
                         //let widget = reCaptchaRender (sprintf "fruit-form-recaptcha-%i" this.Id) reCaptchaKey 
-                        div[
-                            divAttr[
+                        div [] [
+                            div [
                                 attr.id <| sprintf "fruit-form-recaptcha-placeholder-%i " this.Id
                                 attr.``class`` "g-recaptcha"
                                 attr.``data-`` "sitekey" reCaptchaKey
-                                ][]
+                                ] []
                             partOutsideRecaptcha
                         ]:> Doc
                 alertBox :: [fields] @ [buttons]

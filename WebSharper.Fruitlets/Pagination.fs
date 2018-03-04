@@ -1,9 +1,9 @@
 ﻿namespace WebSharper.Fruitlets
 
 open WebSharper
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 [<JavaScript>]
 module Pagination =
@@ -15,8 +15,8 @@ module Pagination =
     let show (pageContent : seq<int*Doc>) position =
         let currentPage = Var.Create 0
         let PreviousPage () =
-            liAttr[attr.``class`` "fruit-page-item"][
-                aAttr[
+            li[attr.``class`` "fruit-page-item"][
+                a[
                     attr.``class`` "fruit-page-link fruit-page-previous"
                     attr.href "#"
                     on.click (fun _ _ ->
@@ -28,8 +28,8 @@ module Pagination =
             ] :> Doc
 
         let NextPage () =
-            liAttr[attr.``class`` "fruit-page-item"][
-                aAttr[
+            li[attr.``class`` "fruit-page-item"][
+                a[
                     on.click (fun _ _ ->
                         if currentPage.Value < (Seq.length pageContent) - 1
                         then currentPage.Value <- currentPage.Value + 1
@@ -41,7 +41,7 @@ module Pagination =
             ] :> Doc
 
         let pageLink index =
-            liAttr[
+            li[
                 attr.classDyn <|
                     View.Map ( fun page ->
                         if page = index
@@ -49,7 +49,7 @@ module Pagination =
                         else "fruit-page-item"
                     ) currentPage.View
                 ][
-                aAttr[
+                a[
                     attr.``class`` "fruit-page-link fruit-bg-default"
                     attr.href "#"
                     on.click (fun _ _ ->
@@ -65,7 +65,7 @@ module Pagination =
                 match position with
                 | Up -> "up"
                 | Down -> "down"
-            ulAttr([attr.``class`` positionClass] @ attrs)
+            ul([attr.``class`` positionClass] @ attrs)
                 ( [PreviousPage ()]
                     @ (
                         pageContent
@@ -79,7 +79,7 @@ module Pagination =
             [
                 for (index, page) in pageContent do
                     yield
-                        divAttr[
+                        div[
                             attr.classDyn <|
                                 View.Map ( fun pageIndex ->
                                     if pageIndex = index
@@ -95,7 +95,7 @@ module Pagination =
                         ] :> Doc
             ]
 
-        div (
+        div [] (
                 match position with
                 | Up -> [pagination []] @ content
                 | Down -> content @ [pagination []]

@@ -2,9 +2,9 @@
 
 open WebSharper
 open WebSharper.JavaScript
-open WebSharper.UI.Next
-open WebSharper.UI.Next.Client
-open WebSharper.UI.Next.Html
+open WebSharper.UI
+open WebSharper.UI.Client
+open WebSharper.UI.Html
 
 [<JavaScript>]
 module Modal =
@@ -15,7 +15,7 @@ module Modal =
 
 
     let private divClass ``class`` content =
-        divAttr [attr.``class`` ``class``] content
+        div [attr.``class`` ``class``] content
 
     type WindowSize =
         | Small
@@ -39,21 +39,21 @@ module Modal =
                 | Large -> [attr.``class`` "modal-dialog modal-lg fruit-modal-dialog fruit-modal-lg"]
                 | _ -> [attr.``class`` "modal-dialog fruit-modal-dialog"]
 
-            divAttr[
+            div[
                 attr.``class`` "modal fade fruit-modal"
                 attr.id this.Id
                 attr.tabindex "-1"
                 Attr.Create "role" "dialog"
                 attr.style "overflow:scroll"
                 ][
-                divAttr (
+                div (
                     [
                      Attr.Create "role" "document"
                     ] @ dialogSizeAttrs )[
                         divClass "modal-content fruit-modal-content"
                             [
                                 divClass "modal-header fruit-modal-header" [
-                                    buttonAttr[
+                                    button[
                                         attr.``class`` "close fruit-modal-close"
                                         attr.``data-`` "dismiss" "modal"
                                         ][text "\u00D7"]
@@ -83,7 +83,7 @@ module Modal =
 
 
     let ButtonSimple Id attrList title =
-        buttonAttr (
+        button (
             [
                 attr.``type`` "button"
                 attr.``class`` "btn btn-primary fruit-btn"
@@ -94,7 +94,7 @@ module Modal =
             ]
 
     let Button Id attrList docList =
-        buttonAttr (
+        button (
             [
                 attr.``type`` "button"
                 attr.``class`` "btn btn-primary fruit-btn"
@@ -104,11 +104,11 @@ module Modal =
 
     let Header title =
         divClass "modal-header" [
-            buttonAttr[
+            button[
                 attr.``type`` "button"
                 attr.``class`` "close fruit-modal-close"
                 attr.``data-`` "dismiss" "modal"
             ][text "x"]
-            h4[text title]
+            h4 [] [text title]
         ]
 
