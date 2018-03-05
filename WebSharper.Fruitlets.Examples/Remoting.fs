@@ -38,7 +38,7 @@ module Server =
 
 
     [<Literal>]
-    let gamePath = "..\\data\\games.csv"
+    let gamePath = "../data/games.csv"
 
     type Game = CsvProvider<gamePath>
 
@@ -66,9 +66,9 @@ module Server =
             let Games = Game.Load(gamePath)
             return
                 Games.Rows
-                //|> Seq.map (fun row -> GameObject.Create(row.Title, (row.``Avg Rating`` |> float), row.``Board Game Rank``,row.``Num Voters``, year row.Title))
+                |> Seq.map (fun row -> GameObject.Create(row.Title, (row.``Avg Rating`` |> float), row.``Board Game Rank``,row.``Num Voters``, year row.Title))
                 |> Seq.toArray
-            //return TableConstructor Games.Rows (Games.Rows.GetType()) (fun g -> g.Title)
+            // return TableConstructor Games.Rows (Games.Rows.GetType()) (fun g -> g.Title)
         }
 
     [<Rpc>]
@@ -83,12 +83,11 @@ module Server =
                 |> Seq.map (fun t ->
                         let year =
                             try
-                                //  ( t.Title.Trim ')') |> fun s -> s.Split [|'('|] |> Array.item 1 |> int
-                                0
+                                 ( t.Title.Trim ')') |> fun s -> s.Split [|'('|] |> Array.item 1 |> int
                             with
                                 | _ -> 0
-                        // GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``, year))
-                        GameObject.Create("",0.0,0,0, 0))
+                        GameObject.Create(t.Title,t.``Avg Rating`` |> float, t.``Board Game Rank``, t.``Num Voters``, year))
+                        // GameObject.Create("",0.0,0,0, 0))
                 |> Seq.toArray
         }
 

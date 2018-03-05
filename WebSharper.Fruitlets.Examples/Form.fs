@@ -58,7 +58,7 @@ module FormClient =
                     [
                         FormField<InputForm>.Create ("First", [firstHasCapital; firstNotEmpty], Input.String ((fun i -> i.First), fun i f -> {i with First = f}))
                         FormField<InputForm>.Create ("Last", [lastMoreThan2], Input.String ((fun i -> i.Last), fun i l -> {i with Last = l}))
-                        FormField<InputForm>.Create ("Hobbies", [], Input.String ((fun i -> String.concat ";" i.Hobbies), fun i l -> {i with Hobbies = l.Split ';'}))
+                        FormField<InputForm>.Create ("Hobbies", [], Input.String ((fun i -> String.concat ";" i.Hobbies), fun i l -> {i with Hobbies = l.Split [|';'|]}))
                         FormField<InputForm>.Create ("Hobbies", [askTheServer 2000; askTheServer 0; askTheServer 5000; askTheServer 1000], Input.StringSeq ((fun i -> i.Hobbies), fun i l -> {i with Hobbies = l}))
                     ]
                 SubmitButton = ReCaptcha ("6LeT2CMUAAAAAMihux1kajdTxA8kw041f5pB7gCH", "Submit")
