@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <WebSharperProject>Website</WebSharperProject>
     <WebProjectOutputDir>$(MSBuildThisFileDirectory)/wwwroot</WebProjectOutputDir>
+    <!-- <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects> -->
   </PropertyGroup>
   <ItemGroup>
     <Content Include="index.html" CopyToPublishDirectory="Always" />
