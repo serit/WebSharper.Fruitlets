@@ -136,7 +136,7 @@ module Form =
             fun (t : Var<'DataType option>) ->
 
                 let localFields = Var.Create (this.Fields)
-                let mutable formVersion = -1
+                let mutable formVersion = -1 // for recaptcha
                 this.Status.Value <- Loaded
                 View.Sink ( fun t' ->
                     // form verion updates to 0 on initialization
@@ -292,21 +292,20 @@ module Form =
                     | Simple buttonText ->
                         View.Map2 (fun a b -> a,b) t.View this.Status.View
                         |> Doc.BindView( fun (t', status) ->
+                            let clickFunction el ev = 
+                                formVersion <- formVersion + 1
+                                match t' with
+                                | Some t'' -> submit t' t'' el ev
+                                | None -> ()           
                             match status with
                             | Loaded 
                             | Error _ 
                             | Submitted ->
-                                button[
+                                button [
                                     attr.id <| sprintf "fruit-form-submit-%i" this.Id
                                     attr.``class`` "btn btn-info fruit-btn fruit-btn-save"
-                                    on.click(fun el ev ->
-                                        // formVersion <- formVersion + 1
-                                        match t' with
-                                        | Some t'' -> submit t' t'' el ev
-                                        | None -> ()           
-                                
-                                        )
-                                    ][text buttonText] :> Doc
+                                    on.click clickFunction
+                                    ] [text buttonText] :> Doc
                             | _ -> Doc.Empty
                         )
                     | ReCaptcha (reCaptchaKey, buttonText) ->
