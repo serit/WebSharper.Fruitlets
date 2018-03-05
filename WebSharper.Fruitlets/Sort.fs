@@ -1,4 +1,5 @@
-﻿namespace WebSharper.Fruitlets
+﻿// Sort: Helpers for Table
+namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.JavaScript

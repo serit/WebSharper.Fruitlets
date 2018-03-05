@@ -1,4 +1,5 @@
-﻿namespace WebSharper.Fruitlets
+﻿// Time: Helper functions for Input
+namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.JavaScript

@@ -10,7 +10,7 @@ open WebSharper.UI.Html
 [<JavaScript>]
 module DataSource =
 
-
+    // REST 
     type ApiCrud<'T> =
         {
             mutable CreateFunc: string option
@@ -98,6 +98,7 @@ module DataSource =
                     DeleteFunc = deleteFunction
             }
 
+    // WS RPC
     type RpcCrud<'U,'T> when 'U : equality =
         {
             mutable CreateFunc: (unit -> Async<Result.Result<'T,string>>) option
@@ -176,6 +177,7 @@ module DataSource =
                 ErrorStatus = Var.Create ""
             }
 
+    // non-async
     type SynchCrud<'U,'T> when 'U : equality =
         {
             mutable CreateFunc: (unit -> 'T) option
@@ -238,6 +240,7 @@ module DataSource =
         | Rpc of RpcCrud<'U,'T>
         | Synchronous of SynchCrud<'U,'T>
 
+    // WS ListModel
     type DS<'U,'T> when 'U : equality =
         {
             IdFunc: ('T -> 'U)

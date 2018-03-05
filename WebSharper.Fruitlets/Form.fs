@@ -1,4 +1,5 @@
-﻿namespace WebSharper.Fruitlets
+﻿// iTODO: Split into two or three, move out validation and form status
+namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.JavaScript

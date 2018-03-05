@@ -1,4 +1,5 @@
-﻿namespace WebSharper.Fruitlets
+﻿// Helpers for Input "select"
+namespace WebSharper.Fruitlets
 
 open WebSharper
 open WebSharper.JavaScript
