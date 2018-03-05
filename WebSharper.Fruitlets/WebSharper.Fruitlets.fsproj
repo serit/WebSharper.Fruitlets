@@ -4,6 +4,8 @@
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <WebSharperProject>Library</WebSharperProject>
+    <VersionPrefix>0.7.2</VersionPrefix>
+    <!-- <VersionSuffix>netcore</VersionSuffix> -->
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Time.fs" />
