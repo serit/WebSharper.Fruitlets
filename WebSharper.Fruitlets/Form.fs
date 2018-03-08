@@ -13,8 +13,14 @@ module Form =
 
     open Input
     
+    /// Function to validate form input
     type ValidationFunction<'DataType> =
+        /// Typically a client side validation function
         | Sync of ('DataType -> bool)
+        /// Typically a server side validation function called through Rpc
+        /// <returns>
+        /// A Var<bool option> which will be updated once the asynchronous function completes
+        /// </returns>
         | Async of ('DataType -> Async<Result.Result<bool,string>>)
         member this.validates (t: 'DataType) =
             match this with
@@ -30,8 +36,11 @@ module Form =
                 varBool
             
             
+    /// Types of validation errors
     type ValidationError<'DataType> =
+        /// Simple string validation error
         | Simple of string
+        /// Validation error dependent on the item that it validates for
         | Sync of ('DataType -> string)
         //| Async of ('DataType -> Async<Result.Result<string,string>>)
         member this.Value t =
@@ -39,20 +48,25 @@ module Form =
             | Sync f -> f t 
             | Simple str -> str
     
-    (* Field, FormField and Validation are used to generate forms with validation *)
+    /// Validation contains a function to validate and an error to return on failed validation
     type Validation<'DataType> =
         {
-            ValidationFunction: ValidationFunction<'DataType> //'DataType -> bool
+            ValidationFunction: ValidationFunction<'DataType>
             OnError: ValidationError<'DataType>
         }
 
+    /// An inputfield in a Form
     type FormField<'DataType> =
         {
             Label: string
+            /// Each inputfield runs through a list of validations on form submit
             Validations: Validation<'DataType> list
             Input: InputType<'DataType>
+            /// The inputfield will get an updated look based on validation result
             mutable HasError: bool option
         }
+        /// Before submitting the contents of the form, each validation function is run.
+        /// Only after all validation functions return succefully, will submit happen
         member this.PrevalidateView t =            
             let initialValidate = View.Const (Some true)
             this.Validations 
@@ -63,8 +77,11 @@ module Form =
             this.Validations 
             |> List.map (fun v -> (v.ValidationFunction.validates t).View, v.OnError)
 
+        /// If no validation function is defined for this field, no validation is necessary
         member this.PrevalidateNecessary =  
             not <| List.isEmpty this.Validations
+        /// Used in prevalidate fold. This fold will return None as long as one of the Validation functions is not complete
+        /// Once all validation functions have terminated, the fold returns Boolean AND over all of their results
         static member accumulatorViewMapBool (acc: View<bool option>) (t: View<bool option>) =
             View.Map2 (fun acc' t' -> 
                 match (acc', t') with
@@ -86,22 +103,25 @@ module Form =
                 Input = input'
                 HasError = None
             }
-            
+
+    /// Types of form submit functions        
     type FormSubmitFunction<'DataType> =
+        /// Client side submit function (triggered by a button click)
         | Sync of ('DataType option -> Dom.Element -> Dom.MouseEvent -> bool)
+        /// Server side submit function (triggered by a button click)
         | Async of ('DataType option -> Dom.Element -> Dom.MouseEvent -> Async<Result.Result<bool,string>>)
     
     type ButtonText = string
     type ReCaptchaKey = string
-    /// <summary>  
-    /// the simple type will generate a simple submit button, 
-    /// while the recapctha requires a recaptcha key
-    /// which can be generated here: https://www.google.com/recaptcha/admin
-    /// the recaptcha script is loaded in the code
-    /// It is assumed that there is at most one recaptcha button per page
-    /// </summary>  
+    
+    /// Types of Form submit, used to generate the submit button
     type SubmitType =
+        /// the simple type will generate a simple submit button, 
         | Simple of ButtonText
+        /// The recapctha type requires a recaptcha key
+        /// which can be generated here: https://www.google.com/recaptcha/admin
+        /// the recaptcha script is loaded in the code
+        /// It is assumed that there is at most one recaptcha button per page  
         | ReCaptcha of ReCaptchaKey * ButtonText
 
         
@@ -112,6 +132,7 @@ module Form =
     [<Inline "typeof grecaptcha.render == 'undefined'">]
     let reCaptchaNotLoaded () = X<bool>
 
+    /// Different statuses for the form. Will influence appearance of the form, input fields, errorboxes and buttons
     type FormStatus =
         | NoStatus
         | Loaded
@@ -121,16 +142,43 @@ module Form =
         | Submitted
         | Error of string list
 
+    /// The form
+    /// <example>
+    /// let isPrime =
+    ///    {
+    ///         ValidationFunction = ValidationFunction<InputForm>.Sync (fun i -> IsPrime i)
+    ///         OnError = ValidationError<InputForm>.Sync (fun i -> sprintf "%i is not a prime number" i)
+    ///    }
+    /// let primeForm : Form<int> =
+    ///     {
+    ///         Id = 1
+    ///         Fields =
+    ///             [
+    ///                 FormField<InputForm>.Create ("Enter a prime number", [isPrime], Input.Int (id, fun _ i -> i))
+    ///             ]
+    ///         SubmitButton = ReCaptcha ("6LeT2CMUAAAAAMihux1kajdTxA8kw041f5pB7gCH", "Submit")
+    ///         SubmitSuccess = "Successfully entered a prime number"
+    ///         SubmitFailure = "Failure"
+    ///         OnSubmit = Sync <| fun (t: InputForm option) el ev -> Console.Log t; true
+    ///         Status = Var.Create NoStatus
+    ///     }
+    /// primeForm.show 2
+    /// </example>
     type Form<'DataType> =
         {
-            // incase multiple forms are defined on the same page
+            // in case multiple forms are defined on the same page, an Id will prevent any conflicts during render and submit
             Id: int
+            /// input fields on the form
             Fields: FormField<'DataType> list
+            /// submit button (plain or recaptcha)
             SubmitButton: SubmitType
+            /// Message on submit success
             SubmitSuccess: string
+            /// Message on submit failure
             SubmitFailure: string
-            // todo: OnSubmit should have a variant where the result is asynchronous
+            /// OnSubmit defines the submit function
             OnSubmit: FormSubmitFunction<'DataType>
+            /// Current status of the form
             Status: Var<FormStatus>
         }
         member this.show =
@@ -158,6 +206,7 @@ module Form =
 //                    | None -> ()
                 ) t.View
 
+                // will display any problems with the form
                 let alertBox =
                     Doc.BindView (function
                         | Error errs ->
@@ -178,6 +227,7 @@ module Form =
                         | _ -> Doc.Empty
                     ) this.Status.View
 
+                // display all fields (with error or success marker once the form has been submitted)
                 let fields =
                     Doc.BindView( fun fields ->
                         fields
@@ -207,6 +257,7 @@ module Form =
                             |> Doc.Concat
                     ) localFields.View
 
+                // run on submit    
                 let submit t' t'' el ev =
                     
                     // use the prevalidate view, to generate error. 
@@ -217,7 +268,6 @@ module Form =
                         this.Fields
                         |> List.map (fun field -> field.PrevalidateAndErrorView t'')
 
-                    //errorMsg.Value <- []
                     this.Status.Value <- Validating
                     let accumulatorViewMapString (acc: View<string list>) (t: (View<bool option> * ValidationError<'DataType>)) =
                         let boolView = fst t
@@ -291,9 +341,11 @@ module Form =
                 let buttons =
                     match this.SubmitButton with
                     | Simple buttonText ->
+                        // the appearance of the button depends on the form status
                         View.Map2 (fun a b -> a,b) t.View this.Status.View
                         |> Doc.BindView( fun (t', status) ->
                             let clickFunction el ev = 
+                                // form version updates on each submit. Error fields will not show until after the first submit 
                                 formVersion <- formVersion + 1
                                 match t' with
                                 | Some t'' -> submit t' t'' el ev
@@ -310,18 +362,20 @@ module Form =
                             | _ -> Doc.Empty
                         )
                     | ReCaptcha (reCaptchaKey, buttonText) ->
-                        //let reCaptchaLoaded = Var.Create false
                         this.Status.Value <- LoadingCaptcha
+                        // everything that's not in the recaptcha-div
                         let partOutsideRecaptcha =
                             t.View
                             |> Doc.BindView( fun t' ->
                                 let clickFunction el ev =
+                                    // form version updates on each submit. Error fields will not show until after the first submit
                                     formVersion <- formVersion + 1
                                     match t' with
                                     | Some t'' -> 
                                         if reCaptchaResponse () then submit t' t'' el ev
                                         else this.Status.Value <- Error ["Either you are a robot or reCaptcha was not properly loaded"]
                                     | None -> ()
+                                // give the recaptcha scripts a second to load before attempting to check recaptcha keys                                
                                 let afterRender (el: Dom.Element)  =                                       
                                     let rec tryLoadText () =
                                         try 
