@@ -21,10 +21,8 @@ module Input =
     type Getter<'DataType,'T> = 'DataType -> 'T
     type Setter<'DataType,'T> = 'DataType -> 'T -> 'DataType
     type GetSetter<'DataType,'T> = Getter<'DataType,'T> * Setter<'DataType,'T>
-
-    /// <summary>    
+   
     /// InputType is a lens and should be used in a form that represents a Var<'DataType>
-    /// </summary>  
     type InputType<'DataType> =
         | Disabled of ('DataType -> Doc list)
         | String of GetSetter<'DataType, string>

@@ -47,47 +47,33 @@ module Table =
 
     type TableSettings<'DataType> =
         {            
-            /// <summary>
             /// Whether a detail wil be shown for no rows, all rows or the selected row
             /// The row detail will be show in a separate row underneath the main one
-            /// </summary>
             ShowDetail: TableRowDetail<'DataType>
                
-            /// <summary>
-            /// Optional custom buttons   
-            /// </summary>
+            /// Optional custom buttons
             AddButton: ButtonStatic option
             EditButton: ButtonFromItem<'DataType> option
             DeleteButton: ButtonFromItem<'DataType> option
                
-            /// <summary>
-            /// Optional custom modal buttons   
-            /// </summary>
+            /// Optional custom modal buttons 
             ModalSaveButton: (ButtonFromItem<'DataType> option)
             ModalSaveValidation: Validation<'DataType> option
             ModalCancelButton: ButtonFromItem<'DataType> option
             ModalDeleteButton: ButtonFromItem<'DataType> option
             ModalDeleteValidation: Validation<'DataType> option
                
-            /// <summary>
-            /// ShowErrors. On by default   
-            /// </summary>
+            /// ShowErrors. On by default 
             ShowErrors: bool
                
-            /// <summary>
-            /// Set attributes for different elements of the table   
-            /// </summary>
+            /// Set attributes for different elements of the table
             TableElementAttributes: TableElementAttributes<'DataType>
                
-            /// <summary>
-            /// Shown as description in modal header   
-            /// </summary>
+            /// Shown as description in modal header 
             ModalUpdateHeader: 'DataType -> string
             ModalDeleteHeader: 'DataType -> string
                
-            /// <summary>
-            /// Show Table header   
-            /// </summary>
+            /// Show Table header 
             ShowTableHeader: bool
 
             mutable ItemSelectFunc: ('DataType -> Dom.Element -> Dom.Event -> unit) option
@@ -113,21 +99,13 @@ module Table =
 
     type Table<'Key, 'DataType> when 'Key : equality  =
         {   
-            /// <summary>
-            /// the id of the table       
-            /// </summary>
+            /// the id of the table
             Id': string   
-            /// <summary>
-            /// The datasource for the table rows   
-            /// </summary>
-            DataSource: DataSource.DS<'Key,'DataType>   
-            /// <summary>
-            /// The Column type generates a column from type 'DataType   
-            /// </summary>
-            Columns: Column<'DataType> []   
-            /// <summary>
-            /// CustomSettings   
-            /// </summary>
+            /// The datasource for the table rows
+            DataSource: DataSource.DS<'Key,'DataType> 
+            /// The Column type generates a column from type 'DataType 
+            Columns: Column<'DataType> [] 
+            /// CustomSettings 
             Settings: TableSettings<'DataType>
         }
         member private this.SortFunctionView =    
@@ -396,26 +374,6 @@ module Table =
                             | Some t' when this.DataSource.IdFunc t' = this.DataSource.IdFunc t.Value -> Doc.BindView f t.View
                             | _ -> Doc.Empty)
                 
-                // get a new index based on the sortfunction, then map that function to the listmodel, to avoid regeneration of a table on each change
-//
-//                let mapping itemInOriginalList =
-//                    let sortedMap =
-//                        view.Value
-//                        |> sortFunction
-//                        |> Seq.indexed
-//                    Seq.tryPick (fun (indexInSortedList, item) -> 
-//                        if this.DataSource.IdFunc itemInOriginalList = this.DataSource.IdFunc item && filter itemInOriginalList then 
-//                            Some (indexInSortedList, this.DataSource.IdFunc itemInOriginalList)
-//                        else None) sortedMap
-//
-//                [Doc.BindSeqCachedViewBy mapping (function
-//                    | Some (_, key) ->
-//                        fun _ ->
-//                            let tLens = view.Lens key
-//                            [rowFunction tLens; detailRowFunction tLens] |> Doc.Concat
-//                    | None -> fun _ -> Doc.Empty) view.View]
-
-
                 view.Value
                 |> sortFunction
                 |> Seq.filter filter
@@ -435,10 +393,8 @@ module Table =
                 then (this.EditWindow currentItem idCode).Show()
                 else Doc.Empty)
                 table tableAttributes tableContents
-            ]   
-        /// <summary>
-        /// Show all data in a table   
-        /// </summary>
+            ]
+        /// Show all data in a table
         member this.ShowTable () =
             let currentItem = Var.Create None
             this.DataSource.Read()
@@ -452,10 +408,8 @@ module Table =
                 |> Doc.BindView ( fun (_, sortFunction) ->
                     this.ShowTableFilter (fun _ -> true) currentItem sortFunction
                 ) 
-            ]  
-        /// <summary>
+            ]
         /// Show all data in pages with each table with #pageSize rows
-        /// </summary>
         member this.ShowTableWithPages pageSize =
             let currentItem = Var.Create None
             this.DataSource.Read()
@@ -487,54 +441,41 @@ module Table =
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, (fun () -> async{return Array.empty}))
                 Columns = [||]
                 Settings = TableSettings.Default
-            }  
-        /// <summary>
-        /// Create a read only table based on an asynchronous source  
-        /// </summary>
+            }
+        /// Create a read only table based on an asynchronous source
         static member Create (Id, (keyFunction: ('DataType -> 'Key)), columns, (readFunc: unit -> Async<array<'DataType>>)) =
-           {
+            {
                Table<'Key, 'DataType>.Create(keyFunction) with 
                     Id' = Id
                     Columns = columns
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
-            }
-              
-        /// <summary>
-        /// Create a table based on an asynchronous, editable source  
-        /// </summary>
+            }              
+        /// Create a table based on an asynchronous, editable source 
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> Async<array<'DataType>>), createFunc, updateFunc, deleteFunc) =
             {
                 Table<'Key, 'DataType>.Create(Id,keyFunction,columns,readFunc) with 
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
-                }  
-        /// <summary>
+            }  
         /// Create a table based on a synchronous, editable source  
-        /// </summary>
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: unit -> array<'DataType>), createFunc, updateFunc, deleteFunc) =
-           {
+            {
                Table<'Key, 'DataType>.Create(keyFunction) with 
                     Id' = Id
                     Columns = columns
                     DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
-            }  
-        /// <summary>
-        /// Create a table based on an api, editable source  
-        /// </summary>
+            }
+        /// Create a table based on an api, editable source
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: string)) =
-           {
+            {
                 Id' = Id
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc)
                 Settings = TableSettings.Default
             }
         static member Create (Id, (keyFunction: 'DataType -> 'Key), columns, (readFunc: string), createFunc, updateFunc, deleteFunc) =
-           {
+            {
                 Id' = Id
                 Columns = columns
                 DataSource = DataSource.DS<'Key,'DataType>.Create (keyFunction, readFunc, createFunc, updateFunc, deleteFunc)
                 Settings = TableSettings.Default
             }
-
-
-
-
